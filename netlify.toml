@@ -1,5 +1,4 @@
 # This is the main build configuration for your Netlify site.
-# It tells Netlify everything it needs to know to build your frontend.
 [build]
   # The root of your frontend application
   base = "artisan-direct"
@@ -10,16 +9,16 @@
   # The directory that contains the final, built site
   publish = "artisan-direct/build"
 
-  # This section tells Netlify's security scanner to ignore these public keys,
-  # which is necessary for Firebase to work.
-  [build.environment]
-    SECRETS_SCAN_OMIT_KEYS = [
-      "REACT_APP_FIREBASE_API_KEY",
-      "REACT_APP_FIREBASE_AUTH_DOMAIN",
-      "REACT_APP_FIREBASE_PROJECT_ID",
-      "REACT_APP_FIREBASE_STORAGE_BUCKET",
-      "REACT_APP_FIREBASE_MESSAGING_SENDER_ID",
-      "REACT_APP_FIREBASE_APP_ID",
-      "REACT_APP_FIREBASE_MEASUREMENT_ID",
-      "REACT_APP_API_URL"
-    ]
+# This section tells Netlify's security scanner to ignore these public keys.
+# It must be at the top level, not nested under [build.environment].
+[build.processing.secrets]
+  omit_keys = [
+    "REACT_APP_FIREBASE_API_KEY",
+    "REACT_APP_FIREBASE_AUTH_DOMAIN",
+    "REACT_APP_FIREBASE_PROJECT_ID",
+    "REACT_APP_FIREBASE_STORAGE_BUCKET",
+    "REACT_APP_FIREBASE_MESSAGING_SENDER_ID",
+    "REACT_APP_FIREBASE_APP_ID",
+    "REACT_APP_FIREBASE_MEASUREMENT_ID",
+    "REACT_APP_API_URL"
+  ]
