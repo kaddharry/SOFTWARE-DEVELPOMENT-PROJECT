@@ -1,0 +1,15 @@
+# Ignore environment files
+.env
+artisan-direct/.env
+backend/.env
+# backend/config/dotenv.js
+
+# Node modules
+node_modules/
+artisan-direct/node_modules/
+backend/node_modules/
+
+# Build outputs
+build/
+dist/
+.next/

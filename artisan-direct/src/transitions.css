@@ -1,0 +1,36 @@
+/* This wrapper provides the positioning context for the pages. */
+.transition-wrapper {
+  position: relative;
+  /* This ensures the container can hold the absolutely positioned children */
+  width: 100%;
+  height: 100%;
+}
+
+/* This is the container that gets animated. We apply a background color to it in App.js */
+.page-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Entering Page Animation */
+.fade-enter {
+  opacity: 0;
+  z-index: 1; /* Ensures the new page is on top */
+}
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 3000ms ease-in;
+}
+
+/* Exiting Page Animation */
+.fade-exit {
+  opacity: 1;
+  z-index: 0; /* Ensures the old page is behind */
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 3000ms ease-in;
+}
