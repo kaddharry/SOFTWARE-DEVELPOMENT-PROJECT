@@ -1,5 +1,4 @@
-// **THE DEFINITIVE FIX**: Import our new config file as the very first line of code.
-// This ensures all environment variables are loaded before any other module is imported.
+// This file loads the environment variables before anything else.
 import './config/dotenv.js';
 
 import express from "express";
@@ -7,44 +6,36 @@ import mongoose from "mongoose";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import orderRoutes from './routes/orderRoutes.js';
 
-// Now that the .env is loaded, we can safely import the routes.
+// Import routes
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from './routes/productRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  // This allows both your local and live frontend to connect.
+  origin: [
+    'http://localhost:3000', 
+    'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app' 
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
 }));
 app.use(express.json());
-app.use('/api/orders', orderRoutes);
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // --- API Routes ---
 app.use("/api/users", userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/orders', orderRoutes);
 
-app.get("/api/test", (req, res) => {
-  res.json({ message: "Backend is working 🚀" });
-});
-
-// --- Serve React frontend build ---
-app.use(express.static(path.join(__dirname, "../artisan-direct/build")));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../artisan-direct/build", "index.html"));
-});
+// **THE FIX**: The code that served the static frontend files has been removed.
+// The backend's only job is to be an API.
 
 // --- MongoDB Connection ---
 mongoose
