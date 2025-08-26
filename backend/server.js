@@ -14,14 +14,13 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 
 const app = express();
-// **FIX**: Rely on the PORT provided by the hosting environment (like Render).
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  // This allows both your local and live frontend to connect.
+  // **THE FIX**: Added your live Vercel URL to the list of allowed origins.
   origin: [
-    'http://localhost:3000', 
+    'http://localhost:3000', // For local development
     'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app' 
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -35,8 +34,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 
-// **THE FIX**: The code that served the static frontend files has been removed.
-// The backend's only job is to be an API.
+// The backend's only job is to be an API, so the static file serving is removed.
 
 // --- MongoDB Connection ---
 mongoose
