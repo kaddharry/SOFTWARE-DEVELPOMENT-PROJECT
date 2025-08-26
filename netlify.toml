@@ -1,6 +1,17 @@
+# This is the main build configuration for your Netlify site.
+# It tells Netlify everything it needs to know to build your frontend.
 [build]
-  # This tells Netlify's secrets scanner to ignore these specific keys.
-  # They are safe to be in the frontend build output as required by Firebase.
+  # The root of your frontend application
+  base = "artisan-direct"
+  
+  # The command to build your site
+  command = "npm run build"
+  
+  # The directory that contains the final, built site
+  publish = "artisan-direct/build"
+
+  # This section tells Netlify's security scanner to ignore these public keys,
+  # which is necessary for Firebase to work.
   [build.environment]
     SECRETS_SCAN_OMIT_KEYS = [
       "REACT_APP_FIREBASE_API_KEY",
