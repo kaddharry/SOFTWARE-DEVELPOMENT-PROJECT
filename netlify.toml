@@ -1,13 +1,13 @@
 # This is the main build configuration for your Netlify site.
 [build]
+  # The root of your frontend application
   base = "artisan-direct"
-  command = "npm run build"
-  publish = "artisan-direct/build"
-
-  # This section tells the build server how to behave.
-  [build.environment]
-    # **THE FIX**: This tells Node.js to use less memory, preventing crashes on Netlify's free tier.
-    NODE_OPTIONS = "--max-old-space-size=4096"
+  
+  # The command to build your site, with the memory fix included
+  command = "NODE_OPTIONS=--max-old-space-size=4096 npm run build"
+  
+  # The directory that contains the final, built site (relative to the base)
+  publish = "build"
 
 # This section tells Netlify's security scanner to ignore public keys.
 [build.processing.secrets]
