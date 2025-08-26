@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   // **THE FIX**: Added your live Vercel URL to the list of allowed origins.
+  // The backend's own Render URL does not need to be listed here.
   origin: [
     'http://localhost:3000', // For local development
     'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app' 
