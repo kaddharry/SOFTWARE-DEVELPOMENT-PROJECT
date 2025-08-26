@@ -1,16 +1,15 @@
 # This is the main build configuration for your Netlify site.
 [build]
-  # The root of your frontend application
   base = "artisan-direct"
-  
-  # The command to build your site
   command = "npm run build"
-  
-  # The directory that contains the final, built site
   publish = "artisan-direct/build"
 
-# This section tells Netlify's security scanner to ignore these public keys.
-# It must be at the top level, not nested under [build.environment].
+  # This section tells the build server how to behave.
+  [build.environment]
+    # **THE FIX**: This tells Node.js to use less memory, preventing crashes on Netlify's free tier.
+    NODE_OPTIONS = "--max-old-space-size=4096"
+
+# This section tells Netlify's security scanner to ignore public keys.
 [build.processing.secrets]
   omit_keys = [
     "REACT_APP_FIREBASE_API_KEY",
