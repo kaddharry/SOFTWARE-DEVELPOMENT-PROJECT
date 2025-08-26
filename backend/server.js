@@ -14,6 +14,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 
 const app = express();
+// **FIX**: Rely on the PORT provided by the hosting environment (like Render).
 const PORT = process.env.PORT || 5000;
 
 // Middleware
