@@ -27,8 +27,10 @@ app.use(cors({
   origin: 'https://software-develpoment-project-kaddharrys-projects.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
+app.use(cors(corsOptions));
 
 // --- API Routes ---
 app.use("/api/users", userRoutes);
