@@ -62,7 +62,7 @@ function Orders() {
             const buyerId = JSON.parse(savedData)._id;
 
             try {
-                const res = await fetch(`http://localhost:5000/api/orders/by-buyer/${buyerId}`);
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/by-buyer/${buyerId}`);
                 if (!res.ok) {
                     throw new Error("Could not fetch your orders.");
                 }

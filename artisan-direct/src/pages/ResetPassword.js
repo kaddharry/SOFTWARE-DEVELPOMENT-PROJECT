@@ -97,7 +97,7 @@ function ResetPassword() {
         setIsLoading(true);
         setError('');
         try {
-            const res = await fetch('http://localhost:5000/api/users/reset-password', {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/reset-password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, newPassword })

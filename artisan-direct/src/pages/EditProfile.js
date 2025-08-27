@@ -45,7 +45,7 @@ function EditProfile() {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/users/verify-password', {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/verify-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: currentUser.phone, password: password })
@@ -78,7 +78,7 @@ function EditProfile() {
         setSuccess('');
 
         try {
-            const res = await fetch('http://localhost:5000/api/users/update-profile', {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: currentUser.phone, ...formData })

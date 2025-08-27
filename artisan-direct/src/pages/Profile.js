@@ -50,7 +50,7 @@ function Profile() {
         if (!userData || !userData.phone) return;
 
         try {
-            const res = await fetch('http://localhost:5000/api/users/update-profile', {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: userData.phone, isShopOpen: newStatus })
@@ -82,7 +82,7 @@ function Profile() {
 
         try {
             // Step 1: Upload the image to the backend/Cloudinary
-            const uploadRes = await fetch('http://localhost:5000/api/upload', {
+            const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -92,7 +92,7 @@ function Profile() {
             const { imageUrl } = uploadData;
 
             // Step 2: Save the returned URL to the user's profile
-            const updateRes = await fetch('http://localhost:5000/api/users/update-profile', {
+            const updateRes = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: userData.phone, profilePicUrl: imageUrl })

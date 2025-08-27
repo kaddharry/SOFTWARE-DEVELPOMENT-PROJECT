@@ -49,7 +49,7 @@ function Home({ addToCart }) {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/products/all');
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/products/all`);
                 if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
                 setProducts(data);

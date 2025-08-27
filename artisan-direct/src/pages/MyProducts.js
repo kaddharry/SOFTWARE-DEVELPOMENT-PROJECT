@@ -19,7 +19,7 @@ function MyProducts() {
             const sellerId = JSON.parse(savedData)._id;
 
             try {
-                const res = await fetch(`http://localhost:5000/api/products/by-seller/${sellerId}`);
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/products/by-seller/${sellerId}`);
                 if (!res.ok) throw new Error("Could not fetch your products.");
                 const data = await res.json();
                 setProducts(data);
