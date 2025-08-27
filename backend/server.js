@@ -17,13 +17,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// **THE DEFINITIVE FIX**: Allow requests from ANY origin.
+// This is a temporary but effective solution to solve the CORS issue.
 app.use(cors({
-  // **THE FIX**: Added your new, specific Vercel deployment URL.
-  origin: [
-    'http://localhost:3000', // For local development
-    'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app', // Old URL, good to keep for now
-    'https://software-develpoment-project-e8z5xasmy-kaddharrys-projects.vercel.app'  // The new, correct URL
-  ],
+  origin: '*', 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
 }));
