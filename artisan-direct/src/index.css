@@ -1,3 +1,30 @@
+/* src/index.css */
+
+/* This makes layout calculations more predictable */
+* {
+  box-sizing: border-box;
+}
+
+/* Set a base font size for the whole app */
+html {
+  font-size: 16px; /* This is the standard base for desktops */
+}
+
+/* This is a "media query." It applies these styles ONLY on smaller screens. */
+@media (max-width: 600px) {
+  html {
+    /* On mobile, we reduce the base font size, and everything else will scale down with it! */
+    font-size: 14px;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif; /* A clean, modern font */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
