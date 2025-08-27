@@ -73,7 +73,7 @@ function AddProduct() {
             const imageFormData = new FormData();
             imageFormData.append('image', imageFile);
 
-            const uploadRes = await fetch('REACT_APP_API_URL/api/upload', {
+            const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
                 method: 'POST',
                 body: imageFormData,
             });
