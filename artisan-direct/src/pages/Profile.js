@@ -113,9 +113,9 @@ function Profile() {
     };
 
     const dashboardData = {
-        revenue: "12,500",
-        monthlyOrders: 82,
-        bestSeller: "Handmade Clay Pot"
+        revenue: "N/A",
+        monthlyOrders: 0,
+        bestSeller: "N/A"
     };
 
     if (!userData) {

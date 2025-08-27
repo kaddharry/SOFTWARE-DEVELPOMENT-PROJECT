@@ -18,19 +18,16 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  // **THE FIX**: Added your live Vercel URL to the list of allowed origins.
-  // The backend's own Render URL does not need to be listed here.
-  // origin: [
-  //   // 'http://localhost:3000', // For local development
-  //   'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app' 
-  // ],
-  origin: 'https://software-develpoment-project-kaddharrys-projects.vercel.app',
+  // **THE FIX**: Added your new, specific Vercel deployment URL.
+  origin: [
+    'http://localhost:3000', // For local development
+    'https://software-develpoment-project-cw4rdmqbn-kaddharrys-projects.vercel.app', // Old URL, good to keep for now
+    'https://software-develpoment-project-e8z5xasmy-kaddharrys-projects.vercel.app'  // The new, correct URL
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
-  optionsSuccessStatus: 200
 }));
 app.use(express.json());
-app.use(cors(corsOptions));
 
 // --- API Routes ---
 app.use("/api/users", userRoutes);
@@ -38,7 +35,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 
-// The backend's only job is to be an API, so the static file serving is removed.
+// The backend's only job is to be an API.
 
 // --- MongoDB Connection ---
 mongoose
