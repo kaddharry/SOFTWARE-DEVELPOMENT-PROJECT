@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, Gift, X, Zap } from 'lucide-react';
 
-// Import our reusable ProductCard component from its own file
+// Import our reusable components
 import ProductCard from '../components/ProductCard'; 
 import GiftAdvisorModal from '../components/GiftAdvisorModal';
+import QuantityModal from '../components/QuantityModal'; // Import the new modal
 
-// Import the new, dedicated stylesheet for this page
+// Import the stylesheet for this page
 import './Home.css';
 
-// --- Components defined within Home.js as requested ---
+// --- Components defined within Home.js ---
 
 // Skeleton Loader Component
 const SkeletonCard = () => (
@@ -22,7 +23,7 @@ const SkeletonCard = () => (
     </div>
 );
 
-// Product Detail Modal Component (with improved image handling)
+// Product Detail Modal Component
 const ProductDetailModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
     if (!product) return null;
     const isOutOfStock = (product.sellerId && product.sellerId.isShopOpen === false) || product.quantity <= 0;
@@ -33,9 +34,7 @@ const ProductDetailModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                 <button className="modal-close-btn" onClick={onClose}><X size={28} /></button>
                 
                 <div className="modal-image-container">
-                    {/* This div creates the blurred background effect */}
                     <div className="modal-image-bg" style={{ backgroundImage: `url(${product.imageUrl})` }}></div>
-                    {/* The actual image, which will not be cropped */}
                     <img src={product.imageUrl} alt={product.name} className="modal-image" />
                 </div>
 
@@ -68,6 +67,11 @@ function Home({ addToCart }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isGiftAdvisorOpen, setIsGiftAdvisorOpen] = useState(false);
+    
+    // --- NEW STATE for Quantity Modal ---
+    const [quantityProduct, setQuantityProduct] = useState(null);
+    const [quantityAction, setQuantityAction] = useState(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -86,8 +90,30 @@ function Home({ addToCart }) {
         fetchProducts();
     }, []);
 
+    // --- UPDATED HANDLERS to open the quantity modal ---
+
+    const handleAddToCart = (product) => {
+        setQuantityProduct(product);
+        setQuantityAction('cart');
+    };
+    
     const handleBuyNow = (product) => {
-        navigate('/checkout', { state: { items: [product] } });
+        setQuantityProduct(product);
+        setQuantityAction('buy');
+    };
+
+    // This function is called when the user confirms the quantity
+    const handleConfirmQuantity = (product, quantity) => {
+        if (quantityAction === 'cart') {
+            // Note: Your main addToCart function (likely in App.js) will need to accept a quantity
+            addToCart(product, quantity);
+        }
+        if (quantityAction === 'buy') {
+            const itemToBuy = { ...product, quantity };
+            navigate('/checkout', { state: { items: [itemToBuy] } });
+        }
+        setQuantityProduct(null);
+        setQuantityAction(null);
     };
 
     const handleAdvisorProductSelect = (product) => {
@@ -111,8 +137,15 @@ function Home({ addToCart }) {
             <ProductDetailModal 
                 product={selectedProduct} 
                 onClose={() => setSelectedProduct(null)} 
-                onAddToCart={addToCart}
+                onAddToCart={handleAddToCart}
                 onBuyNow={handleBuyNow}
+            />
+            {/* --- RENDER THE NEW QUANTITY MODAL --- */}
+            <QuantityModal
+                product={quantityProduct}
+                action={quantityAction}
+                onClose={() => setQuantityProduct(null)}
+                onConfirm={handleConfirmQuantity}
             />
 
             <div className="home-container">
@@ -139,7 +172,7 @@ function Home({ addToCart }) {
                                     key={product._id}
                                     product={product} 
                                     onClick={() => setSelectedProduct(product)} 
-                                    onAddToCart={addToCart}
+                                    onAddToCart={handleAddToCart}
                                     onBuyNow={handleBuyNow}
                                     isSellerView={false}
                                 />
@@ -164,4 +197,3 @@ function Home({ addToCart }) {
 }
 
 export default Home;
-
