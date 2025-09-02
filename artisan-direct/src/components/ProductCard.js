@@ -1,163 +1,162 @@
 import React from 'react';
 import { ShoppingCart, Zap } from 'lucide-react';
 
+// This is our single, reusable Product Card component.
+// It can show a customer view (with buttons) or a seller view (with stock).
 function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) {
-    const isOutOfStock = (!product.sellerId?.isShopOpen || product.quantity <= 0) && !isSellerView;
+    const isOutOfStock = (product.sellerId && product.sellerId.isShopOpen === false) || product.quantity <= 0;
 
     const handleActionClick = (e, action) => {
-        e.stopPropagation(); // Prevents the modal from opening when a button is clicked
-        if (action) {
+        e.stopPropagation(); // Prevents the card's main onClick from firing
+        if (!isOutOfStock && action) {
             action(product);
         }
     };
 
     return (
-        <div 
-            className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`} 
-            onClick={() => !isOutOfStock && onClick && onClick(product)}
-        >
-            {isOutOfStock && <div className="stock-overlay">Out of Stock</div>}
-
-            <div className="card-image-container">
-                <img 
-                    src={product.imageUrl || "https://placehold.co/400x250/E7F3FF/003366?text=Product"} 
-                    alt={product.name} 
-                    className="product-image"
-                />
-            </div>
-            <div className="card-details">
-                <h3 className="product-title">{product.name}</h3>
-                <p className="product-seller">by {product.sellerId?.shopName || 'Artisan Shop'}</p>
-                <p className="product-price">₹{product.price}</p>
-            </div>
-
-            {/* Customer View: Show action buttons */}
-            {!isSellerView && (
-                <div className="card-actions">
-                    <button className="action-btn add-cart-btn" disabled={isOutOfStock} onClick={(e) => handleActionClick(e, onAddToCart)}>
-                        <ShoppingCart size={18} />
-                    </button>
-                    <button className="action-btn buy-now-btn" disabled={isOutOfStock} onClick={(e) => handleActionClick(e, onBuyNow)}>
-                        <Zap size={18} /> Buy Now
-                    </button>
+        <div className={`product-card-wrapper ${isOutOfStock ? 'out-of-stock' : ''}`} onClick={isOutOfStock ? null : () => onClick(product)}>
+            {isOutOfStock && (
+                <div className="out-of-stock-overlay">
+                    <span>Out of Stock</span>
                 </div>
             )}
-
-            {/* Seller View: Show stock quantity */}
-            {isSellerView && (
-                <div className="card-footer-seller">
-                    <span>Stock: {product.quantity}</span>
+            <div className="product-card">
+                <div className="product-card-image-container">
+                    <img src={product.imageUrl} alt={product.name} className="product-card-image" />
                 </div>
-            )}
+                <div className="product-card-details">
+                    <h3 className="product-card-name">{product.name}</h3>
+                    <p className="product-card-price">₹{product.price}</p>
+                    
+                    {isSellerView ? (
+                        <p className="product-card-stock">Stock: {product.quantity}</p>
+                    ) : (
+                        <div className="product-card-actions">
+                            <button
+                                className="product-card-btn add"
+                                aria-label={`Add ${product.name} to cart`}
+                                onClick={(e) => handleActionClick(e, onAddToCart)}
+                                disabled={isOutOfStock}
+                            >
+                                <ShoppingCart size={18} />
+                            </button>
+                            <button
+                                className="product-card-btn buy"
+                                aria-label={`Buy ${product.name} now`}
+                                onClick={(e) => handleActionClick(e, onBuyNow)}
+                                disabled={isOutOfStock}
+                            >
+                                <Zap size={18} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
             <style>{`
-                .product-card {
-                    background-color: #fff;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                .product-card-wrapper {
+                    border-radius: 18px;
+                    transition: transform 0.4s ease, box-shadow 0.4s ease;
+                    background: #ffffff;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
                     display: flex;
                     flex-direction: column;
-                    transition: transform 0.2s ease, box-shadow 0.2s ease;
-                    position: relative;
-                }
-                .product-card:not(.out-of-stock):hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-                    cursor: pointer;
-                }
-                .card-image-container {
-                    width: 100%;
-                    padding-top: 75%; /* 4:3 aspect ratio */
-                    position: relative;
-                    background-color: #f0f4f8;
-                }
-                .product-image {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                .card-details {
-                    padding: 15px;
-                }
-                .product-title {
-                    margin: 0 0 5px;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    color: #333;
-                    white-space: nowrap;
                     overflow: hidden;
-                    text-overflow: ellipsis;
+                    position: relative;
                 }
-                .product-seller {
-                    font-size: 0.8rem;
-                    color: #777;
-                    margin: 0 0 10px;
+                .product-card-wrapper:hover {
+                    transform: translateY(-8px);
+                    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
                 }
-                .product-price {
-                    font-size: 1.2rem;
-                    font-weight: bold;
-                    color: #003366;
-                }
-                .card-actions {
+                .product-card {
                     display: flex;
-                    gap: 10px;
-                    padding: 0 15px 15px;
-                }
-                .action-btn {
-                    flex-grow: 1;
-                    padding: 10px;
-                    border-radius: 8px;
-                    border: none;
-                    font-size: 0.9rem;
-                    font-weight: bold;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    transition: background-color 0.2s ease;
-                }
-                .action-btn:disabled {
-                    background-color: #e9ecef !important;
-                    color: #adb5bd !important;
-                    cursor: not-allowed;
-                }
-                .add-cart-btn {
-                    background-color: #e7f3ff;
-                    color: #007BFF;
-                }
-                .buy-now-btn {
-                    background-color: #007BFF;
-                    color: white;
-                }
-                .card-footer-seller {
-                    padding: 15px;
-                    background-color: #f8f9fa;
-                    text-align: center;
-                    font-weight: 500;
-                    color: #555;
-                }
-                .product-card.out-of-stock {
-                    filter: grayscale(80%);
-                }
-                .stock-overlay {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
+                    flex-direction: column;
                     height: 100%;
+                    cursor: pointer;
+                }
+                .out-of-stock-overlay {
+                    position: absolute;
+                    top: 0; left: 0; right: 0; bottom: 0;
                     background: rgba(255, 255, 255, 0.7);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.2rem;
-                    font-weight: bold;
-                    color: #333;
-                    z-index: 10;
+                    color: #c82333;
+                    font-size: 1.4rem;
+                    font-weight: 700;
+                    border-radius: 18px;
+                    z-index: 3;
+                    backdrop-filter: blur(2px);
+                    cursor: not-allowed;
                 }
+                .product-card-image-container {
+                    width: 100%;
+                    padding-top: 100%; /* Creates a square aspect ratio */
+                    position: relative;
+                    background-color: #f8f9fa;
+                }
+                .product-card-image {
+                    position: absolute;
+                    top: 0; left: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover; /* This crops the image to fill the container */
+                    transition: transform 0.4s ease;
+                }
+                .product-card-wrapper:not(.out-of-stock):hover .product-card-image {
+                    transform: scale(1.05);
+                }
+                .product-card-details {
+                    padding: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    flex-grow: 1;
+                }
+                .product-card-name {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: #212529;
+                    margin: 0 0 8px;
+                    flex-grow: 1; /* Pushes price/buttons to the bottom */
+                }
+                .product-card-price {
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    color: #0056b3;
+                    margin: 0 0 12px;
+                }
+                .product-card-stock {
+                    font-size: 1rem;
+                    color: #555;
+                    font-weight: 500;
+                    margin: 0;
+                }
+                .product-card-actions {
+                    display: flex;
+                    gap: 10px;
+                }
+                .product-card-btn {
+                    flex: 1;
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                }
+                .product-card-btn:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                }
+                .product-card-btn:disabled {
+                    background: #e9ecef;
+                    cursor: not-allowed;
+                    color: #6c757d;
+                }
+                .product-card-btn.add { background: linear-gradient(45deg, #0D6EFD, #3da9fc); }
+                .product-card-btn.buy { background: linear-gradient(45deg, #FF9900, #FD7E14); }
             `}</style>
         </div>
     );

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, Shield, HelpCircle, ShoppingBag, PlusCircle, BarChart2, Star, Eye, Camera, Upload, X } from 'lucide-react';
+// 1. ADDED the PackageCheck icon for the new card
+import { Edit, Shield, HelpCircle, ShoppingBag, PlusCircle, BarChart2, Star, Eye, Camera, Upload, X, PackageCheck } from 'lucide-react';
 
-// --- Shop Closed Sign Component ---
+// --- Shop Closed Sign Component (No Changes) ---
 const ShopClosedSign = ({ onClose }) => {
     return (
         <div className="shop-closed-overlay">
@@ -18,15 +19,14 @@ const ShopClosedSign = ({ onClose }) => {
 
 
 function Profile() {
-    // --- State Management ---
+    // --- All existing state and functions are unchanged ---
     const [isShopOpen, setIsShopOpen] = useState(true);
     const [showClosedSign, setShowClosedSign] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [userData, setUserData] = useState(null);
-    const [uploading, setUploading] = useState(false); // To show loading state
+    const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
 
-    // --- Data Fetching & Effects ---
     useEffect(() => {
         const savedData = localStorage.getItem("userData");
         if (savedData) {
@@ -42,13 +42,10 @@ function Profile() {
         }
     }, [isShopOpen]);
 
-    // --- Event Handlers ---
     const handleToggleShopStatus = async () => {
         const newStatus = !isShopOpen;
         setIsShopOpen(newStatus);
-
         if (!userData || !userData.phone) return;
-
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
                 method: 'PUT',
@@ -69,19 +66,14 @@ function Profile() {
         fileInputRef.current.click();
     };
 
-    // **FIXED**: This function now handles the full upload and save process.
     const handleFileChange = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-
         setIsModalOpen(false);
         setUploading(true);
-
         const formData = new FormData();
-        formData.append('image', file); // "image" must match the key in uploadRoutes.js
-
+        formData.append('image', file);
         try {
-            // Step 1: Upload the image to the backend/Cloudinary
             const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
@@ -90,8 +82,6 @@ function Profile() {
             if (!uploadRes.ok) throw new Error(uploadData.message || 'Image upload failed.');
             
             const { imageUrl } = uploadData;
-
-            // Step 2: Save the returned URL to the user's profile
             const updateRes = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -99,11 +89,8 @@ function Profile() {
             });
             const updatedUserData = await updateRes.json();
             if (!updateRes.ok) throw new Error(updatedUserData.message || 'Failed to update profile.');
-
-            // Step 3: Update localStorage and component state
             localStorage.setItem('userData', JSON.stringify(updatedUserData.user));
             setUserData(updatedUserData.user);
-
         } catch (error) {
             console.error("Failed to upload profile picture:", error);
             alert("Error uploading image. Please try again.");
@@ -124,47 +111,33 @@ function Profile() {
 
     return (
         <>
+            {/* --- The top part of your component is unchanged --- */}
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileChange} />
-
-            {isModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
-                        <h3>Upload Profile Photo</h3>
-                        <button className="modal-option-btn" onClick={handleImageUploadClick}><Upload size={20} /> From Device</button>
-                        <button className="modal-option-btn" disabled><Camera size={20} /> From Camera (Coming Soon)</button>
-                    </div>
-                </div>
-            )}
-            
+            {isModalOpen && ( <div className="modal-overlay" onClick={() => setIsModalOpen(false)}> <div className="modal-content" onClick={(e) => e.stopPropagation()}> <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button> <h3>Upload Profile Photo</h3> <button className="modal-option-btn" onClick={handleImageUploadClick}><Upload size={20} /> From Device</button> <button className="modal-option-btn" disabled><Camera size={20} /> From Camera (Coming Soon)</button> </div> </div> )}
             {showClosedSign && <ShopClosedSign onClose={() => setShowClosedSign(false)} />}
 
             <div className="profile-container">
                 <div className="profile-header card">
-                    <div className="profile-picture-container" onClick={() => !uploading && setIsModalOpen(true)}>
-                        <img src={userData.profilePicUrl || `https://placehold.co/100x100/E7F3FF/003366?text=${userData.name ? userData.name.charAt(0) : 'S'}`} alt="Shop Logo" className={`profile-picture ${uploading ? 'uploading' : ''}`} />
-                        {!uploading && <div className="plus-icon">+</div>}
-                        {uploading && <div className="spinner"></div>}
-                    </div>
-                    <div className="profile-info">
-                        <h1 className="shop-name">{userData.shopName}</h1>
-                        <p className="seller-name">Seller: {userData.name}</p>
-                        <p className="seller-id">ID: {userData._id}</p>
-                    </div>
-                    <div className="shop-status">
-                        <label className="switch">
-                            <input type="checkbox" checked={isShopOpen} onChange={handleToggleShopStatus} />
-                            <span className="slider round"></span>
-                        </label>
-                        <span className="status-label">{isShopOpen ? "Open for Business" : "On Vacation"}</span>
-                    </div>
+                    <div className="profile-picture-container" onClick={() => !uploading && setIsModalOpen(true)}> <img src={userData.profilePicUrl || `https://placehold.co/100x100/E7F3FF/003366?text=${userData.name ? userData.name.charAt(0) : 'S'}`} alt="Shop Logo" className={`profile-picture ${uploading ? 'uploading' : ''}`} /> {!uploading && <div className="plus-icon">+</div>} {uploading && <div className="spinner"></div>} </div>
+                    <div className="profile-info"> <h1 className="shop-name">{userData.shopName}</h1> <p className="seller-name">Seller: {userData.name}</p> <p className="seller-id">ID: {userData._id}</p> </div>
+                    <div className="shop-status"> <label className="switch"> <input type="checkbox" checked={isShopOpen} onChange={handleToggleShopStatus} /> <span className="slider round"></span> </label> <span className="status-label">{isShopOpen ? "Open for Business" : "On Vacation"}</span> </div>
                 </div>
 
+                {/* --- 2. ADDED the new "Orders Received" card here --- */}
                 <div className="dashboard-grid">
                     <div className="dashboard-card card"><BarChart2 size={28} className="icon-blue" /><h4>Total Revenue</h4><p className="metric">₹{dashboardData.revenue}</p></div>
-                    <div className="dashboard-card card"><ShoppingBag size={28} className="icon-orange" /><h4>Orders This Month</h4><p className="metric">{dashboardData.monthlyOrders}</p></div>
+                    {/* <div className="dashboard-card card"><ShoppingBag size={28} className="icon-orange" /><h4>Orders This Month</h4><p className="metric">{dashboardData.monthlyOrders}</p></div> */}
                     <div className="dashboard-card card"><Star size={28} className="icon-green" /><h4>Best Seller</h4><p className="metric-small">{dashboardData.bestSeller}</p></div>
+                    
+                    {/* 👇 This is the new card that links to the seller's orders page 👇 */}
+                    <Link to="/seller-orders" className="dashboard-card card interactive">
+                        <PackageCheck size={28} className="icon-green" />
+                        <h4>Orders Received</h4>
+                        <p className="metric">View</p>
+                    </Link>
                 </div>
+
+                {/* --- The rest of your component is unchanged --- */}
                 <div className="menu-container card">
                     <h3 className="menu-title">Manage Your Shop</h3>
                     <div className="menu-grid"><Link to="/add-product" className="menu-item"><PlusCircle size={24} /><span>Add New Product</span></Link><Link to="/my-products" className="menu-item"><ShoppingBag size={24} /><span>View Your Products</span></Link><Link to="/shop-preview" className="menu-item"><Eye size={24} /><span>View as Customer</span></Link></div>
@@ -175,6 +148,7 @@ function Profile() {
                 </div>
             </div>
 
+            {/* --- 3. ADDED a new style for the interactive card --- */}
             <style>{`
                 .profile-container { padding: 20px; background-color: #f0f4f8; font-family: sans-serif; min-height: 100vh; }
                 .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); padding: 20px; margin-bottom: 20px; }
@@ -191,7 +165,9 @@ function Profile() {
                 .shop-status { display: flex; align-items: center; gap: 10px; margin-left: auto; }
                 .status-label { font-weight: bold; color: #333; }
                 .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
-                .dashboard-card { text-align: center; }
+                .dashboard-card { text-align: center; text-decoration: none; color: inherit; }
+                .dashboard-card.interactive { transition: transform 0.2s ease, box-shadow 0.2s ease; } /* New style */
+                .dashboard-card.interactive:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); } /* New style */
                 .dashboard-card h4 { margin: 10px 0 5px; color: #555; font-size: 0.9rem; }
                 .metric { margin: 0; font-size: 2rem; font-weight: bold; color: #003366; }
                 .metric-small { margin: 0; font-size: 1rem; font-weight: bold; color: #333; }
@@ -223,11 +199,8 @@ function Profile() {
                 .shop-closed-sign p { font-size: 1.2rem; margin-bottom: 0.5rem; }
                 .shop-closed-sign small { color: #555; }
                 .close-sign-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; color: #888; }
-                
-                /* Spinner for image upload */
                 .spinner { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; transform: translate(-50%, -50%); }
                 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-
                 @media (min-width: 768px) { .menu-grid { grid-template-columns: repeat(2, 1fr); } }
             `}</style>
         </>
@@ -235,3 +208,4 @@ function Profile() {
 }
 
 export default Profile;
+

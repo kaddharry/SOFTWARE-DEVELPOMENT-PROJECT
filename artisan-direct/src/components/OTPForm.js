@@ -14,62 +14,58 @@ function OTPForm({ userData, onVerify }) {
     const [confirmationResult, setConfirmationResult] = useState(null);
     const [error, setError] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
-    const [isSending, setIsSending] = useState(true); // To show loading state initially
+    const [isSending, setIsSending] = useState(true);
     const navigate = useNavigate();
+    
+    // **NEW**: State for the resend timer
+    const [timer, setTimer] = useState(150); // 2 minutes and 30 seconds
 
     const phoneToVerify = userData ? userData.phone : null;
 
-    // This useEffect handles the entire OTP sending process robustly.
+    // This function handles sending the OTP and can be reused
+    const sendOtp = async () => {
+        setIsSending(true);
+        setError('');
+        try {
+            const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+                'callback': () => console.log("reCAPTCHA challenge successful.")
+            });
+            await recaptchaVerifier.render();
+            
+            const formattedPhoneNumber = `+91${phoneToVerify}`;
+            const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier);
+            
+            setConfirmationResult(result);
+            console.log("OTP sent successfully!");
+            setTimer(150); // Reset timer on successful send
+            
+        } catch (err) {
+            console.error("Full error object:", err);
+            setError("Failed to send OTP. Please check the phone number or try again later.");
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // This effect sends the initial OTP when the component loads
     useEffect(() => {
         if (!phoneToVerify) {
-            console.error("No phone number found, redirecting to register.");
             navigate("/register");
             return;
         }
-
-        // We declare the verifier here so it's in scope for cleanup
-        let recaptchaVerifier;
-
-        const setupAndSendOtp = async () => {
-            try {
-                // Create and render the verifier
-                recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                    'size': 'invisible',
-                    'callback': (response) => {
-                        // reCAPTCHA solved, allow signInWithPhoneNumber.
-                        console.log("reCAPTCHA challenge successful.");
-                    }
-                });
-                
-                // This ensures the verifier is ready before we proceed
-                await recaptchaVerifier.render();
-                
-                const formattedPhoneNumber = `+91${phoneToVerify}`;
-                console.log(`Attempting to send OTP to ${formattedPhoneNumber}...`);
-                
-                const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier);
-                
-                setConfirmationResult(result);
-                console.log("OTP sent successfully!");
-
-            } catch (err) {
-                console.error("Full error object:", err);
-                setError("Failed to send OTP. Please check the phone number or try again later.");
-            } finally {
-                setIsSending(false); // Hide initial loading state
-            }
-        };
-
-        setupAndSendOtp();
-
-        // Cleanup function to destroy the verifier when the component unmounts
-        return () => {
-            if (recaptchaVerifier) {
-                recaptchaVerifier.clear();
-                console.log("reCAPTCHA cleared.");
-            }
-        };
+        sendOtp();
     }, [phoneToVerify, navigate]);
+
+    // **NEW**: This effect manages the countdown timer
+    useEffect(() => {
+        if (timer > 0) {
+            const interval = setInterval(() => {
+                setTimer(prevTimer => prevTimer - 1);
+            }, 1000);
+            return () => clearInterval(interval); // Cleanup interval on unmount
+        }
+    }, [timer]);
 
 
     const handleVerifyOtp = async (e) => {
@@ -87,14 +83,19 @@ function OTPForm({ userData, onVerify }) {
         setIsVerifying(true);
         try {
             await confirmationResult.confirm(otp);
-            console.log("✅ OTP Verified successfully!");
             onVerify();
         } catch (err) {
-            console.error("Error verifying OTP:", err);
             setError("The OTP you entered is incorrect. Please try again.");
         } finally {
             setIsVerifying(false);
         }
+    };
+
+    // Format timer for display (e.g., 02:30)
+    const formatTime = (seconds) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     };
 
     return (
@@ -128,7 +129,7 @@ function OTPForm({ userData, onVerify }) {
                                 onChange={(e) => setOtp(e.target.value)}
                                 maxLength="6"
                                 required
-                                disabled={isSending} // Disable input while sending
+                                disabled={isSending}
                             />
                         </div>
                         <button type="submit" className="verify-btn" disabled={isVerifying || isSending}>
@@ -137,6 +138,17 @@ function OTPForm({ userData, onVerify }) {
                     </form>
 
                     {error && <p className="error-message">{error}</p>}
+
+                    {/* **NEW**: Resend OTP section with countdown */}
+                    <div className="resend-container">
+                        {timer > 0 ? (
+                            <p>Resend OTP in {formatTime(timer)}</p>
+                        ) : (
+                            <button className="resend-btn" onClick={sendOtp} disabled={isSending}>
+                                {isSending ? "Sending..." : "Resend OTP"}
+                            </button>
+                        )}
+                    </div>
 
                     <p className="back-link">
                        Wrong number? <Link to="/register">Go Back</Link>
@@ -158,7 +170,10 @@ function OTPForm({ userData, onVerify }) {
                 .verify-btn { width: 100%; padding: 15px; border: none; border-radius: 8px; background-color: #FFA500; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s ease; margin-top: 1rem; }
                 .verify-btn:disabled { background-color: #ccc; cursor: not-allowed; }
                 .error-message { color: #d93025; margin-top: 1rem; }
-                .back-link { margin-top: 1.5rem; font-size: 0.9rem; }
+                .resend-container { margin-top: 1.5rem; font-size: 0.9rem; color: #555; }
+                .resend-btn { background: none; border: none; color: #007BFF; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+                .resend-btn:disabled { color: #aaa; cursor: not-allowed; }
+                .back-link { margin-top: 1rem; font-size: 0.9rem; }
                 .back-link a { color: #007BFF; text-decoration: none; font-weight: bold; }
             `}</style>
         </>
