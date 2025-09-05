@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-// 1. ADDED the PackageCheck icon for the new card
-import { Edit, Shield, HelpCircle, ShoppingBag, PlusCircle, BarChart2, Star, Eye, Camera, Upload, X, PackageCheck } from 'lucide-react';
+import { Edit, Shield, HelpCircle, ShoppingBag, PlusCircle, BarChart2, Star, Eye, Camera, Upload, X, PackageCheck, AlertTriangle } from 'lucide-react';
 
-// --- Shop Closed Sign Component (No Changes) ---
 const ShopClosedSign = ({ onClose }) => {
     return (
         <div className="shop-closed-overlay">
@@ -17,9 +15,10 @@ const ShopClosedSign = ({ onClose }) => {
     );
 };
 
-
 function Profile() {
-    // --- All existing state and functions are unchanged ---
+    const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+    const [deliveryIssuesCount, setDeliveryIssuesCount] = useState(0); // New state for issues
+    const [dashboardData, setDashboardData] = useState({ revenue: "N/A", bestSeller: "N/A" });
     const [isShopOpen, setIsShopOpen] = useState(true);
     const [showClosedSign, setShowClosedSign] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +32,41 @@ function Profile() {
             const parsedData = JSON.parse(savedData);
             setUserData(parsedData);
             setIsShopOpen(parsedData.isShopOpen !== false);
+
+            const fetchSellerData = async () => {
+                if (!parsedData?._id) return;
+                try {
+                    const ordersRes = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/by-seller/${parsedData._id}`);
+                    if (ordersRes.ok) {
+                        const orders = await ordersRes.json();
+                        
+                        // --- MODIFIED: Calculate both pending and issue counts ---
+                        const pendingCount = orders.filter(order => order.status === 'Pending').length;
+                        const issuesCount = orders.filter(order => order.hasDeliveryIssue).length;
+                        setPendingOrdersCount(pendingCount);
+                        setDeliveryIssuesCount(issuesCount);
+
+                        let totalRevenue = 0;
+                        const productSales = {};
+                        orders.forEach(order => {
+                            if (order.status === 'Delivered') {
+                                totalRevenue += order.totalAmount;
+                            }
+                            order.products.forEach(product => {
+                                productSales[product.name] = (productSales[product.name] || 0) + product.quantity;
+                            });
+                        });
+                        const bestSellerName = Object.keys(productSales).reduce((a, b) => productSales[a] > productSales[b] ? a : b, "N/A");
+                        setDashboardData({
+                            revenue: totalRevenue.toFixed(2),
+                            bestSeller: bestSellerName,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch seller data:", error);
+                }
+            };
+            fetchSellerData();
         }
     }, []);
 
@@ -42,68 +76,63 @@ function Profile() {
         }
     }, [isShopOpen]);
 
+    // All handler functions (handleToggleShopStatus, handleImageUploadClick, handleFileChange) remain unchanged...
     const handleToggleShopStatus = async () => {
-        const newStatus = !isShopOpen;
-        setIsShopOpen(newStatus);
-        if (!userData || !userData.phone) return;
-        try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: userData.phone, isShopOpen: newStatus })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            localStorage.setItem('userData', JSON.stringify(data.user));
-        } catch (error) {
-            console.error("Failed to update shop status:", error);
-            setIsShopOpen(!newStatus);
-            alert("Could not update shop status.");
-        }
-    };
+        const newStatus = !isShopOpen;
+        setIsShopOpen(newStatus);
+        if (!userData || !userData.phone) return;
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: userData.phone, isShopOpen: newStatus })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            localStorage.setItem('userData', JSON.stringify(data.user));
+        } catch (error) {
+            console.error("Failed to update shop status:", error);
+            setIsShopOpen(!newStatus);
+            alert("Could not update shop status.");
+        }
+    };
 
-    const handleImageUploadClick = () => {
-        fileInputRef.current.click();
-    };
+    const handleImageUploadClick = () => {
+        fileInputRef.current.click();
+    };
 
-    const handleFileChange = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        setIsModalOpen(false);
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('image', file);
-        try {
-            const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData,
-            });
-            const uploadData = await uploadRes.json();
-            if (!uploadRes.ok) throw new Error(uploadData.message || 'Image upload failed.');
-            
-            const { imageUrl } = uploadData;
-            const updateRes = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: userData.phone, profilePicUrl: imageUrl })
-            });
-            const updatedUserData = await updateRes.json();
-            if (!updateRes.ok) throw new Error(updatedUserData.message || 'Failed to update profile.');
-            localStorage.setItem('userData', JSON.stringify(updatedUserData.user));
-            setUserData(updatedUserData.user);
-        } catch (error) {
-            console.error("Failed to upload profile picture:", error);
-            alert("Error uploading image. Please try again.");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const dashboardData = {
-        revenue: "N/A",
-        monthlyOrders: 0,
-        bestSeller: "N/A"
-    };
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        setIsModalOpen(false);
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+            const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (!uploadRes.ok) throw new Error(uploadData.message || 'Image upload failed.');
+            
+            const { imageUrl } = uploadData;
+            const updateRes = await fetch(`${process.env.REACT_APP_API_URL}/api/users/update-profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: userData.phone, profilePicUrl: imageUrl })
+            });
+            const updatedUserData = await updateRes.json();
+            if (!updateRes.ok) throw new Error(updatedUserData.message || 'Failed to update profile.');
+            localStorage.setItem('userData', JSON.stringify(updatedUserData.user));
+            setUserData(updatedUserData.user);
+        } catch (error) {
+            console.error("Failed to upload profile picture:", error);
+            alert("Error uploading image. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     if (!userData) {
         return <div>Loading Profile...</div>;
@@ -111,7 +140,6 @@ function Profile() {
 
     return (
         <>
-            {/* --- The top part of your component is unchanged --- */}
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileChange} />
             {isModalOpen && ( <div className="modal-overlay" onClick={() => setIsModalOpen(false)}> <div className="modal-content" onClick={(e) => e.stopPropagation()}> <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button> <h3>Upload Profile Photo</h3> <button className="modal-option-btn" onClick={handleImageUploadClick}><Upload size={20} /> From Device</button> <button className="modal-option-btn" disabled><Camera size={20} /> From Camera (Coming Soon)</button> </div> </div> )}
             {showClosedSign && <ShopClosedSign onClose={() => setShowClosedSign(false)} />}
@@ -123,21 +151,24 @@ function Profile() {
                     <div className="shop-status"> <label className="switch"> <input type="checkbox" checked={isShopOpen} onChange={handleToggleShopStatus} /> <span className="slider round"></span> </label> <span className="status-label">{isShopOpen ? "Open for Business" : "On Vacation"}</span> </div>
                 </div>
 
-                {/* --- 2. ADDED the new "Orders Received" card here --- */}
                 <div className="dashboard-grid">
                     <div className="dashboard-card card"><BarChart2 size={28} className="icon-blue" /><h4>Total Revenue</h4><p className="metric">₹{dashboardData.revenue}</p></div>
-                    {/* <div className="dashboard-card card"><ShoppingBag size={28} className="icon-orange" /><h4>Orders This Month</h4><p className="metric">{dashboardData.monthlyOrders}</p></div> */}
                     <div className="dashboard-card card"><Star size={28} className="icon-green" /><h4>Best Seller</h4><p className="metric-small">{dashboardData.bestSeller}</p></div>
                     
-                    {/* 👇 This is the new card that links to the seller's orders page 👇 */}
+                    {/* --- MODIFIED: The link now contains both notification badges --- */}
                     <Link to="/seller-orders" className="dashboard-card card interactive">
-                        <PackageCheck size={28} className="icon-green" />
-                        <h4>Orders Received</h4>
+                        {pendingOrdersCount > 0 && <div className="notification-badge green">{pendingOrdersCount}</div>}
+                        {deliveryIssuesCount > 0 && <div className="notification-badge red">{deliveryIssuesCount}</div>}
+                        
+                        {deliveryIssuesCount > 0 ? 
+                            <AlertTriangle size={28} className="icon-red" /> : 
+                            <PackageCheck size={28} className="icon-green" />
+                        }
+                        <h4>{deliveryIssuesCount > 0 ? "Action Required" : "Orders Received"}</h4>
                         <p className="metric">View</p>
                     </Link>
                 </div>
 
-                {/* --- The rest of your component is unchanged --- */}
                 <div className="menu-container card">
                     <h3 className="menu-title">Manage Your Shop</h3>
                     <div className="menu-grid"><Link to="/add-product" className="menu-item"><PlusCircle size={24} /><span>Add New Product</span></Link><Link to="/my-products" className="menu-item"><ShoppingBag size={24} /><span>View Your Products</span></Link><Link to="/shop-preview" className="menu-item"><Eye size={24} /><span>View as Customer</span></Link></div>
@@ -148,8 +179,8 @@ function Profile() {
                 </div>
             </div>
 
-            {/* --- 3. ADDED a new style for the interactive card --- */}
             <style>{`
+                /* All previous styles remain the same */
                 .profile-container { padding: 20px; background-color: #f0f4f8; font-family: sans-serif; min-height: 100vh; }
                 .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); padding: 20px; margin-bottom: 20px; }
                 .profile-header { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; }
@@ -165,13 +196,40 @@ function Profile() {
                 .shop-status { display: flex; align-items: center; gap: 10px; margin-left: auto; }
                 .status-label { font-weight: bold; color: #333; }
                 .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
-                .dashboard-card { text-align: center; text-decoration: none; color: inherit; }
-                .dashboard-card.interactive { transition: transform 0.2s ease, box-shadow 0.2s ease; } /* New style */
-                .dashboard-card.interactive:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); } /* New style */
+                .dashboard-card { text-align: center; text-decoration: none; color: inherit; position: relative; }
+                .dashboard-card.interactive { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                .dashboard-card.interactive:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
                 .dashboard-card h4 { margin: 10px 0 5px; color: #555; font-size: 0.9rem; }
                 .metric { margin: 0; font-size: 2rem; font-weight: bold; color: #003366; }
                 .metric-small { margin: 0; font-size: 1rem; font-weight: bold; color: #333; }
-                .icon-blue { color: #007BFF; } .icon-orange { color: #FFA500; } .icon-green { color: #28a745; }
+                .icon-blue { color: #007BFF; } .icon-orange { color: #FFA500; } .icon-green { color: #28a745; } .icon-red { color: #dc3545; }
+
+                .notification-badge {
+                    position: absolute;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.8rem;
+                    font-weight: bold;
+                    border: 2px solid white;
+                    z-index: 1;
+                }
+                .notification-badge.green {
+                    background-color: #28a745;
+                    color: white;
+                    top: 10px;
+                    right: 10px;
+                }
+                .notification-badge.red {
+                    background-color: #dc3545;
+                    color: white;
+                    top: 10px;
+                    left: 10px;
+                }
+
                 .menu-title { color: #003366; border-bottom: 2px solid #f0f4f8; padding-bottom: 10px; margin-top: 20px; margin-bottom: 15px; }
                 .menu-title:first-child { margin-top: 0; }
                 .menu-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }

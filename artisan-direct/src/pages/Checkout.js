@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom'; // FIXED: Removed unused 'Link'
+import { useLocation, useNavigate } from 'react-router-dom';
 import { User, Truck, CreditCard, CheckCircle, ArrowLeft, Trash2 } from 'lucide-react';
 
 function Checkout({ onOrderSuccess }) {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Initialize state directly from location state to avoid useEffect dependency
     const [itemsToPurchase, setItemsToPurchase] = useState(() => location.state?.items || []);
     const [deliveryInfo, setDeliveryInfo] = useState({ name: '', phone: '', address: '' });
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState(1);
     
-    // This effect now only runs once to pre-fill the form and check for empty items.
     useEffect(() => {
         const currentUser = JSON.parse(localStorage.getItem("userData"));
         if (currentUser) {
@@ -24,12 +22,10 @@ function Checkout({ onOrderSuccess }) {
             });
         }
         
-        // If the checkout page is loaded without any items, redirect to the cart.
-        if (itemsToPurchase.length === 0) {
+        if (!itemsToPurchase || itemsToPurchase.length === 0) {
             navigate('/cart');
         }
-    // FIXED: Added missing dependency to the array.
-    }, [navigate, itemsToPurchase.length]);
+    }, [navigate, itemsToPurchase]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -50,10 +46,12 @@ function Checkout({ onOrderSuccess }) {
             const currentUser = JSON.parse(localStorage.getItem("userData"));
             const orderDetails = {
                 buyerId: currentUser._id,
+                // --- MODIFIED: Ensure quantity is included for each product ---
                 products: itemsToPurchase.map(item => ({
                     productId: item._id,
                     name: item.name,
                     price: item.price,
+                    quantity: item.quantity, // This is the crucial addition
                     imageUrl: item.imageUrl,
                     sellerId: item.sellerId._id,
                 })),
@@ -81,8 +79,9 @@ function Checkout({ onOrderSuccess }) {
         }
     };
     
+    // --- MODIFIED: Calculate total based on price * quantity ---
     const calculateTotal = () => {
-        return itemsToPurchase.reduce((sum, item) => sum + item.price, 0);
+        return itemsToPurchase.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     };
 
     const renderStep = () => {
@@ -116,11 +115,15 @@ function Checkout({ onOrderSuccess }) {
                     <>
                         <div className="step-header"><Truck /><h2>Step 3: Review Your Order</h2></div>
                         <div className="summary-section">
-                            <h4>Items ({itemsToPurchase.length})</h4>
+                            <h4>Items ({itemsToPurchase.reduce((sum, item) => sum + item.quantity, 0)})</h4>
                             {itemsToPurchase.map(item => (
                                 <div key={item._id} className="summary-item-card">
                                     <img src={item.imageUrl} alt={item.name} />
-                                    <div className="summary-item-info"><p>{item.name}</p><strong>₹{item.price}</strong></div>
+                                    <div className="summary-item-info">
+                                        {/* --- MODIFIED: Display quantity in review --- */}
+                                        <p>{item.name} (x{item.quantity})</p>
+                                        <strong>₹{(item.price * item.quantity).toFixed(2)}</strong>
+                                    </div>
                                     <button className="summary-remove-btn" onClick={() => handleRemoveItem(item)}><Trash2 size={18} /></button>
                                 </div>
                             ))}
@@ -133,10 +136,10 @@ function Checkout({ onOrderSuccess }) {
                             <h4>Payment</h4>
                             <p>Method: {paymentMethod}</p>
                             <div className="bill-details">
-                                <span>Subtotal:</span><span>₹{calculateTotal()}</span>
+                                <span>Subtotal:</span><span>₹{calculateTotal().toFixed(2)}</span>
                                 <span>Delivery Fee:</span><span>FREE</span>
                                 <hr/>
-                                <strong><span>Total:</span><span>₹{calculateTotal()}</span></strong>
+                                <strong><span>Total:</span><span>₹{calculateTotal().toFixed(2)}</span></strong>
                             </div>
                         </div>
                         <button onClick={handlePlaceOrder} className="action-btn place-order-btn" disabled={isLoading}>{isLoading ? "Placing Order..." : "Confirm & Place Order"}</button>

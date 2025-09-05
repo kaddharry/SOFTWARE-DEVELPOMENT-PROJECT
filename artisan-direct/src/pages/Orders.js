@@ -1,40 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, X } from 'lucide-react';
+import { ShoppingBag, X, AlertTriangle, Phone, Shield } from 'lucide-react';
+import './Orders.css';
 
-// --- Order Detail Modal (Receipt) ---
+// --- Reusable Confirmation Modal ---
+const IssueConfirmationModal = ({ onConfirm, onCancel, step }) => {
+    const messages = {
+        1: {
+            title: "Report Delivery Issue?",
+            body: "Please wait another 1-2 days for the delivery to arrive before raising an issue. Are you sure you want to proceed now?",
+            confirmText: "Yes, Proceed"
+        },
+        2: {
+            title: "Contact Seller",
+            body: "Your issue has been flagged. You can now contact the seller directly to resolve this.",
+            confirmText: "Okay"
+        }
+    };
+    const current = messages[step];
+
+    return (
+        <div className="modal-overlay">
+            <div className="confirmation-modal-content">
+                <div className="confirmation-icon">
+                    {step === 1 ? <AlertTriangle size={48} /> : <Phone size={48} />}
+                </div>
+                <h2>{current.title}</h2>
+                <p>{current.body}</p>
+                <div className="confirmation-actions">
+                    {step === 1 && <button className="cancel-btn" onClick={onCancel}>Wait Longer</button>}
+                    <button className="confirm-btn" onClick={onConfirm}>{current.confirmText}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// --- Redesigned Order Detail Modal (Receipt) ---
 const OrderDetailModal = ({ order, onClose }) => {
     if (!order) return null;
+
+    // --- FIX: Correctly calculate subtotal from all items and quantities ---
+    const subtotal = order.products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <button className="modal-close-btn" onClick={onClose}><X size={28} /></button>
+            <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
+                <button className="receipt-close-btn" onClick={onClose}><X size={24} /></button>
+                
                 <div className="receipt-header">
-                    <h3>Order Receipt</h3>
+                    <h2>Order Receipt</h2>
                     <p><strong>Order ID:</strong> {order._id}</p>
                     <p><strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
+                
                 <div className="receipt-section">
                     <h4>Items Purchased</h4>
-                    {order.products.map((p, i) => (
-                        <div key={i} className="receipt-item">
-                            <img src={p.imageUrl} alt={p.name} />
-                            <span>{p.name}</span>
-                            <strong>₹{p.price}</strong>
-                        </div>
-                    ))}
+                    <div className="receipt-items-list">
+                        {order.products.map((p, i) => (
+                            <div key={i} className="receipt-item">
+                                <img src={p.imageUrl} alt={p.name} className="receipt-item-img"/>
+                                <div className="receipt-item-info">
+                                    <span className="receipt-item-name">{p.name}</span>
+                                    <span className="receipt-item-price-qty">₹{p.price.toFixed(2)} x {p.quantity}</span>
+                                </div>
+                                <strong className="receipt-item-total">₹{(p.price * p.quantity).toFixed(2)}</strong>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+                
                 <div className="receipt-section">
                     <h4>Shipping To</h4>
-                    <p>{order.shippingAddress.name}<br/>{order.shippingAddress.address}<br/>{order.shippingAddress.phone}</p>
+                    <div className="shipping-info">
+                        <p>{order.shippingAddress.name}</p>
+                        <p>{order.shippingAddress.address}</p>
+                        <p>{order.shippingAddress.phone}</p>
+                    </div>
                 </div>
+                
                 <div className="receipt-section">
                     <h4>Payment Summary</h4>
-                    <div className="bill-details">
-                        <span>Subtotal:</span><span>₹{order.totalAmount}</span>
+                    <div className="receipt-bill-details">
+                        {/* --- FIX: Display the correctly calculated subtotal --- */}
+                        <span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span>
                         <span>Delivery Fee:</span><span>FREE</span>
                         <hr/>
-                        <strong><span>Total Paid:</span><span>₹{order.totalAmount}</span></strong>
+                        <strong><span>Total Paid:</span><span>₹{order.totalAmount.toFixed(2)}</span></strong>
                         <span>Method:</span><span>{order.paymentMethod}</span>
                     </div>
                 </div>
@@ -50,37 +103,74 @@ function Orders() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [issueOrder, setIssueOrder] = useState(null); // Order for which issue is being raised
+    const [modalStep, setModalStep] = useState(1);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            const savedData = localStorage.getItem("userData");
-            if (!savedData) {
-                navigate('/login');
-                return;
-            }
-            const buyerId = JSON.parse(savedData)._id;
+    const fetchOrders = useCallback(async () => {
+        const savedData = localStorage.getItem("userData");
+        if (!savedData) {
+            navigate('/login');
+            return;
+        }
+        const buyerId = JSON.parse(savedData)._id;
 
-            try {
-                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/by-buyer/${buyerId}`);
-                if (!res.ok) {
-                    throw new Error("Could not fetch your orders.");
-                }
-                const data = await res.json();
-                setOrders(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchOrders();
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/by-buyer/${buyerId}`);
+            if (!res.ok) throw new Error("Could not fetch your orders.");
+            const data = await res.json();
+            const sortedOrders = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setOrders(sortedOrders);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
     }, [navigate]);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    const handleReportIssueClick = (order) => {
+        setIssueOrder(order);
+        setModalStep(1);
+    };
+
+    const handleConfirmIssue = async () => {
+        if (modalStep === 1) {
+            try {
+                // Call API to flag the order
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/report-issue/${issueOrder._id}`, {
+                    method: 'PUT',
+                });
+                if (!res.ok) throw new Error("Failed to report issue.");
+                
+                // Update the local state to reflect the change immediately
+                setOrders(prevOrders => prevOrders.map(o => 
+                    o._id === issueOrder._id ? { ...o, hasDeliveryIssue: true } : o
+                ));
+
+                setModalStep(2); // Move to the "Contact Seller" step
+            } catch (err) {
+                alert(err.message);
+                setIssueOrder(null);
+            }
+        } else {
+            // This is for the "Okay" button on the final step
+            setIssueOrder(null);
+        }
+    };
+
+    const handleCancelIssue = () => {
+        setIssueOrder(null);
+    };
 
     return (
         <>
             <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+            {issueOrder && <IssueConfirmationModal onConfirm={handleConfirmIssue} onCancel={handleCancelIssue} step={modalStep} />}
+
             <div className="orders-container">
                 <div className="orders-header">
                     <ShoppingBag size={32} />
@@ -101,79 +191,44 @@ function Orders() {
                 {!isLoading && !error && orders.length > 0 && (
                     <div className="timeline">
                         {orders.map(order => (
-                            <div key={order._id} className="timeline-item" onClick={() => setSelectedOrder(order)}>
-                                {/* **FIX**: Added a conditional class to the dot */}
+                            <div key={order._id} className="timeline-item">
                                 <div className={`timeline-dot ${order.status === 'Delivered' ? 'delivered' : ''}`}></div>
                                 <div className="timeline-content">
-                                    <div className="order-card-header">
+                                    <div className="order-card-header" onClick={() => setSelectedOrder(order)}>
                                         <span className="order-date">{new Date(order.createdAt).toDateString()}</span>
                                         <span className={`order-status status-${order.status.toLowerCase()}`}>{order.status}</span>
                                     </div>
-                                    <div className="order-card-body">
+                                    <div className="order-card-body" onClick={() => setSelectedOrder(order)}>
                                         <div className="product-images-preview">
                                             {order.products.slice(0, 3).map((p, i) => <img key={i} src={p.imageUrl} alt={p.name} />)}
                                             {order.products.length > 3 && <div className="more-items">+{order.products.length - 3}</div>}
                                         </div>
                                         <div className="order-summary-info">
-                                            <p>{order.products.length} item(s)</p>
-                                            <strong>Total: ₹{order.totalAmount}</strong>
+                                            <p>{order.products.reduce((sum, p) => sum + p.quantity, 0)} item(s)</p>
+                                            <strong>Total: ₹{order.totalAmount.toFixed(2)}</strong>
                                         </div>
                                     </div>
+                                    {/* --- NEW: Button to report issue --- */}
+                                    {order.status === 'Shipped' && (
+                                        <div className="order-card-footer">
+                                            {order.hasDeliveryIssue ? (
+                                                <p className="issue-reported-text"><Shield size={16} /> Issue Reported</p>
+                                            ) : (
+                                                <button className="report-issue-btn" onClick={() => handleReportIssueClick(order)}>
+                                                    <AlertTriangle size={16} /> I haven't received this
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
-            <style>{`
-                .orders-container { padding: 20px; background-color: #f0f4f8; font-family: sans-serif; min-height: 100vh; }
-                .orders-header { display: flex; align-items: center; gap: 15px; color: #003366; margin-bottom: 30px; }
-                .no-orders-message { text-align: center; padding: 50px; background: white; border-radius: 12px; }
-                .shop-now-btn { padding: 12px 30px; border: none; border-radius: 8px; background-color: #007BFF; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 1rem; }
-                .loading-message, .error-message { text-align: center; font-size: 1.2rem; color: #555; padding: 40px; }
-                .error-message { color: #d93025; }
-                
-                /* Timeline Styles */
-                .timeline { position: relative; max-width: 800px; margin: 0 auto; padding: 20px 0; }
-                .timeline::after { content: ''; position: absolute; width: 4px; background-color: #007BFF; top: 0; bottom: 0; left: 30px; margin-left: -2px; }
-                .timeline-item { padding: 10px 40px; position: relative; background-color: inherit; width: 100%; margin-left: 30px; }
-                .timeline-dot { content: ''; position: absolute; width: 20px; height: 20px; right: auto; left: -10px; top: 28px; background-color: white; border: 4px solid #007BFF; border-radius: 50%; z-index: 1; transition: background-color 0.3s ease; }
-                /* **FIX**: New style for the delivered dot */
-                .timeline-dot.delivered {
-                    background-color: #007BFF;
-                }
-                .timeline-content { padding: 20px; background-color: white; position: relative; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer; transition: box-shadow 0.2s ease; }
-                .timeline-content:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
-                .order-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-                .order-date { font-weight: bold; color: #333; }
-                .order-status { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: white; }
-                .status-shipped { background-color: #FFA500; }
-                .status-delivered { background-color: #28a745; }
-                .status-pending { background-color: #6c757d; }
-                .order-card-body { display: flex; align-items: center; gap: 15px; }
-                .product-images-preview { display: flex; }
-                .product-images-preview img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-right: -15px; border: 2px solid white; }
-                .more-items { width: 50px; height: 50px; border-radius: 8px; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 2; }
-                .order-summary-info { margin-left: auto; text-align: right; }
-                .order-summary-info p { margin: 0 0 5px; color: #555; }
-                .order-summary-info strong { color: #003366; }
-
-                /* Modal (Receipt) Styles */
-                .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-                .modal-content { background: white; border-radius: 15px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; padding: 25px; }
-                @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-                .modal-close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; cursor: pointer; color: #888; }
-                .receipt-header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px; }
-                .receipt-section { margin-bottom: 20px; }
-                .receipt-section h4 { color: #003366; margin-bottom: 10px; }
-                .receipt-item { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
-                .receipt-item img { width: 50px; height: 50px; border-radius: 8px; }
-                .receipt-item strong { margin-left: auto; }
-                .bill-details { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
-                .bill-details hr { grid-column: 1 / -1; border: 0; border-top: 1px solid #eee; }
-            `}</style>
         </>
     );
 }
 
 export default Orders;
+

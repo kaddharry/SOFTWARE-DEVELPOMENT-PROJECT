@@ -26,7 +26,7 @@ import ResetPassword from "./pages/ResetPassword";
 import HelpPage from "./pages/HelpPage";
 import AddProduct from "./pages/AddProduct";
 import RegistrationSuccess from "./pages/RegistrationSuccess";
-import Checkout from "./pages/Checkout"; // Import the Checkout component
+import Checkout from "./pages/Checkout";
 
 // --- Notification Component ---
 const Notification = ({ message, visible }) => {
@@ -79,26 +79,42 @@ function App() {
   }, [notification]);
 
   // --- Event Handlers & Functions ---
-  const addToCart = (productToAdd) => {
-    if (!cartItems.find((item) => item._id === productToAdd._id)) {
-      setCartItems((prevItems) => [...prevItems, productToAdd]);
+
+  // --- MODIFIED: addToCart now handles quantity ---
+  const addToCart = (productToAdd, quantityToAdd = 1) => {
+    const existingItem = cartItems.find((item) => item._id === productToAdd._id);
+
+    if (existingItem) {
+      // If item exists, just update its quantity
+      setCartItems(
+        cartItems.map((item) =>
+          item._id === productToAdd._id
+            ? { ...item, quantity: item.quantity + quantityToAdd }
+            : item
+        )
+      );
+      setNotification({
+        visible: true,
+        message: `Updated quantity for ${productToAdd.name}!`,
+      });
+    } else {
+      // If item is new, add it with the specified quantity
+      setCartItems((prevItems) => [
+        ...prevItems,
+        { ...productToAdd, quantity: quantityToAdd },
+      ]);
       setNotification({
         visible: true,
         message: `${productToAdd.name} added to cart!`,
       });
-    } else {
-      setNotification({
-        visible: true,
-        message: "Item is already in your cart.",
-      });
     }
   };
+
 
   const handleUpdateCart = (newCart) => {
     setCartItems(newCart);
   };
 
-  // **NEW**: This function clears items from the main cart after a successful order.
   const handleOrderSuccess = (orderedItems) => {
     const remainingItems = cartItems.filter(
       (cartItem) =>
@@ -233,7 +249,6 @@ function App() {
                 <Route path="/my-products" element={<MyProducts />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/orders" element={<Orders />} />
                 <Route
                   path="/cart"
                   element={
@@ -243,7 +258,6 @@ function App() {
                     />
                   }
                 />
-                {/* **FIXED**: Added the Checkout route and passed the necessary function */}
                 <Route
                   path="/checkout"
                   element={<Checkout onOrderSuccess={handleOrderSuccess} />}

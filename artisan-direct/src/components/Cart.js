@@ -1,127 +1,172 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Heart } from 'lucide-react';
+import { Trash2, Heart, Plus, Minus, ShoppingCart, ArrowRight } from 'lucide-react';
+import './Cart.css'; // We will use the dedicated CSS file
 
 // --- Main Cart Component ---
-function Cart({ cartItems: initialCartItems, onUpdateCart }) {
-    const [cart, setCart] = useState([]);
-    const [wishlist, setWishlist] = useState([]);
+function Cart({ cartItems, onUpdateCart }) {
+    // Wishlist state is managed locally within the cart
+    const [wishlist, setWishlist] = useState(() => {
+        const savedWishlist = localStorage.getItem("wishlist");
+        return savedWishlist ? JSON.parse(savedWishlist) : [];
+    });
     const navigate = useNavigate();
 
+    // Effect to save wishlist to localStorage whenever it changes
     useEffect(() => {
-        setCart(initialCartItems);
-    }, [initialCartItems]);
+        localStorage.setItem("wishlist", JSON.stringify(wishlist));
+    }, [wishlist]);
 
-    const handleRemoveFromCart = (productToRemove) => {
-        const updatedCart = cart.filter(item => item._id !== productToRemove._id);
-        setCart(updatedCart);
+    // --- Cart Management Functions ---
+
+    const handleQuantityChange = (productId, newQuantity) => {
+        let updatedCart;
+        if (newQuantity <= 0) {
+            // Remove item if quantity is 0 or less
+            updatedCart = cartItems.filter(item => item._id !== productId);
+        } else {
+            // Otherwise, update the quantity of the specific item
+            updatedCart = cartItems.map(item =>
+                item._id === productId ? { ...item, quantity: newQuantity } : item
+            );
+        }
         onUpdateCart(updatedCart);
     };
 
     const handleMoveToWishlist = (productToMove) => {
-        const updatedCart = cart.filter(item => item._id !== productToMove._id);
-        setCart(updatedCart);
+        // 1. Remove from cart
+        const updatedCart = cartItems.filter(item => item._id !== productToMove._id);
         onUpdateCart(updatedCart);
+
+        // 2. Add to wishlist (if it's not already there)
         if (!wishlist.find(item => item._id === productToMove._id)) {
             setWishlist(prev => [...prev, productToMove]);
         }
     };
 
+    const handleClearCart = () => {
+        onUpdateCart([]);
+    };
+
+    const handleProceedToCheckout = () => {
+        navigate('/checkout', { state: { items: cartItems } });
+    };
+
+    // --- Wishlist Management Functions ---
+
     const handleMoveToCart = (productToMove) => {
+        // 1. Remove from wishlist
         const updatedWishlist = wishlist.filter(item => item._id !== productToMove._id);
         setWishlist(updatedWishlist);
-        const updatedCart = [...cart, productToMove];
-        setCart(updatedCart);
-        onUpdateCart(updatedCart);
-    };
-    
-    const handleBuyCart = () => {
-        navigate('/checkout', { state: { items: cart } });
+
+        // 2. Add back to cart (using the main App function to handle quantity correctly)
+        // This simulates adding from the home page, starting with quantity 1
+        const existingCartItem = cartItems.find(item => item._id === productToMove._id);
+        if (existingCartItem) {
+            handleQuantityChange(productToMove._id, existingCartItem.quantity + 1);
+        } else {
+            onUpdateCart([...cartItems, { ...productToMove, quantity: 1 }]);
+        }
     };
 
-    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    const handleRemoveFromWishlist = (productToRemove) => {
+        setWishlist(wishlist.filter(item => item._id !== productToRemove._id));
+    };
+
+
+    // --- Calculations ---
+    const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
     return (
-        <>
-            <div className="cart-page-container">
-                <div className="cart-summary card">
-                    <div className="total-section">
-                        <h2>Your Cart</h2>
-                        <p className="total-price">Total: ₹{total}</p>
-                    </div>
-                    <button className="checkout-btn" disabled={cart.length === 0} onClick={handleBuyCart}>
-                        Proceed to Checkout
+        <div className="cart-page-container">
+            {/* --- Cart Header --- */}
+            <div className="cart-header">
+                <div className="cart-total-info">
+                    <h1>Your Cart ({totalItems} Items)</h1>
+                    <p className="total-amount">₹{cartTotal.toFixed(2)}</p>
+                </div>
+                <div className="cart-header-actions">
+                    {cartItems.length > 0 && (
+                        <button className="clear-cart-btn" onClick={handleClearCart}>
+                            <Trash2 size={16} /> Clear All
+                        </button>
+                    )}
+                    <button className="proceed-checkout-btn" disabled={cartItems.length === 0} onClick={handleProceedToCheckout}>
+                        Proceed to Checkout <ArrowRight size={20} />
                     </button>
                 </div>
+            </div>
 
-                {cart.length === 0 && wishlist.length === 0 && (
-                    <p className="empty-cart-message">🛒 Your cart is empty.</p>
-                )}
-
-                {cart.length > 0 && (
-                    <div className="cart-grid">
-                        {cart.map((item) => (
+            {/* --- Main Content --- */}
+            <div className="cart-main">
+                {cartItems.length > 0 ? (
+                    <div className="cart-items-list">
+                        {cartItems.map(item => (
                             <div key={item._id} className="cart-item-card">
-                                <img src={item.imageUrl} alt={item.name} className="item-image" />
-                                <div className="item-details">
-                                    <h3>{item.name}</h3>
-                                    <p>₹{item.price}</p>
+                                <div className="item-image-container">
+                                    <img src={item.imageUrl} alt={item.name} className="item-image"/>
                                 </div>
-                                <div className="item-actions">
-                                    <button className="action-btn remove-btn" onClick={() => handleRemoveFromCart(item)}><Trash2 size={18} /></button>
-                                    <button className="action-btn wishlist-btn" onClick={() => handleMoveToWishlist(item)}><Heart size={18} /></button>
+                                <div className="item-details-container">
+                                    <h3 className="item-name">{item.name}</h3>
+                                    <p className="item-seller">Sold by: {item.sellerId ? item.sellerId.shopName : 'Artisan Direct'}</p>
+                                </div>
+                                <div className="item-quantity-controls">
+                                    <button className="quantity-btn" onClick={() => handleQuantityChange(item._id, item.quantity - 1)}>
+                                        <Minus size={16} />
+                                    </button>
+                                    <span className="quantity-display">{item.quantity}</span>
+                                    <button className="quantity-btn" onClick={() => handleQuantityChange(item._id, item.quantity + 1)}>
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                                <div className="item-price-divider"></div>
+                                <p className="item-total-price">₹{(item.price * item.quantity).toFixed(2)}</p>
+                                <div className="item-card-actions">
+                                    <button className="item-action-btn" onClick={() => handleMoveToWishlist(item)} title="Move to Wishlist">
+                                        <Heart size={18} />
+                                    </button>
+                                    <button className="item-action-btn" onClick={() => handleQuantityChange(item._id, 0)} title="Remove from Cart">
+                                        <Trash2 size={18} />
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                )}
-
-                {wishlist.length > 0 && (
-                    <div className="wishlist-section">
-                        <h2>Saved for Later</h2>
-                        <div className="cart-grid">
-                            {wishlist.map((item) => (
-                                <div key={item._id} className="cart-item-card">
-                                    <img src={item.imageUrl} alt={item.name} className="item-image" />
-                                    <div className="item-details">
-                                        <h3>{item.name}</h3>
-                                        <p>₹{item.price}</p>
-                                    </div>
-                                    <div className="item-actions">
-                                        <button className="action-btn add-back-btn" onClick={() => handleMoveToCart(item)}>Move to Cart</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                ) : (
+                    <div className="empty-cart-message">
+                        <ShoppingCart size={60} />
+                        <h2>Your cart is currently empty</h2>
+                        <p>Looks like you haven't added anything to your cart yet.</p>
                     </div>
                 )}
             </div>
-            <style>{`
-                .cart-page-container { padding: 20px; background-color: #f0f4f8; font-family: sans-serif; min-height: 100vh; }
-                .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); padding: 20px; margin-bottom: 20px; }
-                .cart-summary { display: flex; justify-content: space-between; align-items: center; }
-                .total-section h2 { margin: 0 0 5px 0; color: #003366; }
-                .total-price { margin: 0; font-size: 1.5rem; font-weight: bold; color: #333; }
-                .checkout-btn { padding: 12px 25px; border: none; border-radius: 8px; background-color: #28a745; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; }
-                .checkout-btn:disabled { background-color: #ccc; cursor: not-allowed; }
-                .empty-cart-message { text-align: center; font-size: 1.2rem; color: #555; padding: 50px; }
-                .cart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-                .cart-item-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; }
-                .item-image { width: 100%; height: 180px; object-fit: cover; }
-                .item-details { padding: 15px; flex-grow: 1; }
-                .item-details h3 { margin: 0 0 8px 0; font-size: 1rem; }
-                .item-details p { margin: 0; font-size: 1.1rem; font-weight: bold; color: #003366; }
-                .item-actions { display: flex; border-top: 1px solid #f0f0f0; }
-                .action-btn { flex-grow: 1; background: none; border: none; padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: background-color 0.2s ease; }
-                .action-btn:first-child { border-right: 1px solid #f0f0f0; }
-                .remove-btn { color: #dc3545; }
-                .wishlist-btn { color: #007BFF; }
-                .add-back-btn { color: #28a745; font-weight: bold; }
-                .action-btn:hover { background-color: #f8f9fa; }
-                .wishlist-section { margin-top: 40px; }
-                .wishlist-section h2 { color: #003366; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
-            `}</style>
-        </>
+            
+            {/* --- Wishlist Section --- */}
+            {wishlist.length > 0 && (
+                <div className="wishlist-section">
+                    <div className="section-divider"></div>
+                    <h2 className="wishlist-header">Saved for Later</h2>
+                    <div className="wishlist-grid">
+                        {wishlist.map(item => (
+                            <div key={item._id} className="wishlist-item-card">
+                                <img src={item.imageUrl} alt={item.name} className="wishlist-item-image"/>
+                                <div className="wishlist-item-details">
+                                    <h4 className="wishlist-item-name">{item.name}</h4>
+                                    <p className="wishlist-item-price">₹{item.price}</p>
+                                </div>
+                                <div className="wishlist-item-actions">
+                                    <button className="wishlist-action-btn" onClick={() => handleMoveToCart(item)}>Move to Cart</button>
+                                    <button className="wishlist-action-btn remove" onClick={() => handleRemoveFromWishlist(item)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
