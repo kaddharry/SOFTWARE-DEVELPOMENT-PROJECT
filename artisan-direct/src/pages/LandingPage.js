@@ -1,517 +1,860 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const ArtisanGraphic = () => (
-  <svg
-    width="140"
-    height="140"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="artisan-svg"
-    aria-hidden="true"
-  >
-    <path
-      d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
-      stroke="var(--primary-color)"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M2 7L12 12L22 7"
-      stroke="var(--primary-color)"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M12 12V22"
-      stroke="var(--primary-color)"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M17 4.5L7 9.5"
-      stroke="var(--accent-color)"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+export default function LandingPage() {
+    const navigate = useNavigate();
+    const [darkMode, setDarkMode] = useState(false);
+    const particleCanvasRef = useRef(null); // RESTORED - Particles are back
 
-function LandingPage() {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
+    // Effect to handle the Unicorn Studio script (lazy + idle load)
+    useEffect(() => {
+        const headerEl = document.querySelector('header [data-us-project]');
+        const alreadyLoaded = window.UnicornStudio && window.UnicornStudio.isInitialized;
+        if (alreadyLoaded) return;
 
-  // Parallax effect on scroll for graphic
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
+        const loadScript = () => {
+            if (window.UnicornStudio && window.UnicornStudio.isInitialized) return;
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.34/dist/unicornStudio.umd.js";
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                if (window.UnicornStudio && !window.UnicornStudio.isInitialized) {
+                    window.UnicornStudio.init();
+                    window.UnicornStudio.isInitialized = true;
+                }
+            };
+            document.body.appendChild(script);
+        };
+
+        // Load on idle to avoid blocking initial scroll
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => loadScript());
+        } else {
+            setTimeout(loadScript, 2000);
+        }
+
+        // Also ensure it loads when the header comes into view
+        if (headerEl && 'IntersectionObserver' in window) {
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        loadScript();
+                        io.disconnect();
+                    }
+                });
+            }, { rootMargin: '200px' });
+            io.observe(headerEl);
+            return () => io.disconnect();
+        }
+        return () => {};
+    }, []);
+
+    // Particle animation logic (DPR-aware, single resize handler, pause on hidden, respects reduced motion)
+    useEffect(() => {
+        const canvas = particleCanvasRef.current;
+        if (!canvas) return;
+
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced) {
+            canvas.width = 0; canvas.height = 0;
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrameId;
+        let running = true;
+
+        const devicePixelRatioSafe = Math.min(window.devicePixelRatio || 1, 1.5);
+
+        function resizeCanvasAndReinit() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.floor(w * devicePixelRatioSafe);
+            canvas.height = Math.floor(h * devicePixelRatioSafe);
+            ctx.setTransform(devicePixelRatioSafe, 0, 0, devicePixelRatioSafe, 0, 0);
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.2 + 0.8;
+                this.speedX = Math.random() * 0.6 - 0.3;
+                this.speedY = Math.random() * 0.6 - 0.3;
+                this.opacity = Math.random() * 0.5 + 0.25;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = darkMode ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(0, 0, 0, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            // Density reduced and scaled for DPR
+            let numParticles = (canvas.width * canvas.height) / 30000; // sparser than before
+            numParticles = Math.min(numParticles, 100);
+            for (let i = 0; i < numParticles; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            if (!running) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let p of particles) { p.update(); p.draw(); }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // Initial setup
+        resizeCanvasAndReinit();
+        animate();
+
+        // Single resize handler with debounce
+        let resizeTimeout;
+        const onResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvasAndReinit, 150);
+        };
+        window.addEventListener('resize', onResize, { passive: true });
+
+        // Pause when tab is hidden
+        const onVisibility = () => {
+            const hidden = document.hidden;
+            if (hidden) {
+                running = false;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            } else {
+                if (!running) {
+                    running = true;
+                    animate();
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            running = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            window.removeEventListener('resize', onResize);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+    }, [darkMode]);
+
+    // Effect to toggle dark class on the body
+    useEffect(() => {
+        if (darkMode) {
+            document.body.classList.add('dark');
+        } else {
+            document.body.classList.remove('dark');
+        }
+    }, [darkMode]);
+
+    // Add back the ripple effect for our new buttons
+    const createRipple = (event) => {
+        const button = event.currentTarget;
+        const circle = document.createElement("span");
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+        circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+        circle.classList.add("ripple");
+
+        // Ensure only one ripple exists at a time
+        const oldRipple = button.getElementsByClassName("ripple")[0];
+        if (oldRipple) {
+            oldRipple.remove();
+        }
+        button.appendChild(circle);
+
+        // Clean up the ripple after animation
+        setTimeout(() => circle.remove(), 600);
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
-  // Ripple effect handler for buttons
-  const createRipple = (event) => {
-    const button = event.currentTarget;
-    const circle = document.createElement("span");
-    const diameter = Math.max(button.clientWidth, button.clientHeight);
-    const radius = diameter / 2;
-    circle.style.width = circle.style.height = `${diameter}px`;
-    circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
-    circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
-    circle.classList.add("ripple");
-    const ripple = button.getElementsByClassName("ripple")[0];
-    if (ripple) ripple.remove();
-    button.appendChild(circle);
-  };
 
-  return (
-    <>
-      <div className={`landing-container ${darkMode ? "dark" : "light"}`}>
-        <button
-          className="dark-toggle"
-          aria-label="Toggle dark mode"
-          onClick={() => setDarkMode((prev) => !prev)}
-          title="Toggle dark mode"
-        >
-          {darkMode ? "🌞" : "🌙"}
-        </button>
+    return (
+        <>
+            <style>{`
+                /* --- Base Theme --- */
+                body {
+                    background-color: #f8f7f3; /* Off-white theme */
+                    font-family: 'Inter', sans-serif;
+                    color: #1a1a1a;
+                    overflow-x: hidden; /* Prevent horizontal scroll */
+                    transition: background-color 0.5s ease, color 0.5s ease;
+                }
 
-        <div className="content-wrapper" role="main" aria-label="Landing page main content">
-          <div
-            className="graphic-container"
-            style={{ transform: `translateY(${scrollY * 0.15}px)` }}
-          >
-            <ArtisanGraphic />
-          </div>
-          <h1 className="main-title">Welcome to Artisan Direct</h1>
-          <p className="subtitle">
-            Connecting local artisans with customers, seamlessly.
-          </p>
-          <div className="button-group">
+                /* --- Dark Mode Theme --- */
+                body.dark {
+                    background-color: #1a1a1a;
+                    color: #f8f7f3;
+                }
+
+                /* --- Unicorn Studio Override --- */
+                [data-us-project] {
+                    width: 100% !important; 
+                    max-width: 1440px;
+                    height: auto !important;
+                    aspect-ratio: 1440 / 750;
+                    margin: 0 auto;
+                }
+                
+                [data-us-project] canvas {
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+
+                /* --- Star Particle Background --- */
+                #particle-canvas {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: -1;
+                    pointer-events: none;
+                }
+                
+                /* --- Responsive Auto-Scrolling Product Cards --- */
+                .scroller {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    overflow: hidden;
+                    -webkit-mask: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+                    mask: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+                    contain: content;
+                }
+
+                .scroller-inner {
+                    --card-width: 288px; /* Default card width */
+                    --card-count: 14; /* Total number of cards (7 originals + 7 duplicates) */
+                    --gap: 1.5rem;
+                    
+                    display: flex;
+                    gap: var(--gap);
+                    width: max-content;
+                    
+                    /* NEW: Dynamic animation duration */
+                    animation: scroll var(--_animation-duration, 40s) linear infinite;
+                    will-change: transform;
+                }
+                
+                .scroller:hover .scroller-inner {
+                    animation-play-state: paused;
+                }
+
+                @keyframes scroll {
+                    0% {
+                        transform: translateX(0);
+                    }
+                    100% {
+                        /* NEW: Precise calculation */
+                        transform: translateX(calc( (var(--card-width) + var(--gap)) * (var(--card-count) / 2) * -1 ));
+                    }
+                }
+                
+                .product-card {
+                    width: var(--card-width);
+                    flex-shrink: 0;
+                    border-radius: 0.75rem;
+                    background-color: #ffffff;
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+                    transition: all 0.3s ease;
+                    contain: content;
+                    will-change: transform;
+                }
+                
+                /* NEW: Responsive styles for carousel */
+                @media (max-width: 640px) {
+                    .scroller-inner {
+                        --card-width: 240px; /* Smaller cards on mobile */
+                        --gap: 1rem;
+                        
+                        /* NEW: Slower animation on mobile if desired */
+                        /* animation-duration: 60s; */
+                    }
+                    
+                    /* Recalculate animation end point */
+                    @keyframes scroll {
+                        0% { transform: translateX(0); }
+                        100% {
+                            transform: translateX(calc( (240px + 1rem) * 7 * -1 ));
+                        }
+                    }
+                }
+
+                body.dark .product-card {
+                    background-color: #2c2c2c;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                }
+                
+                .product-card:hover {
+                    transform: translate3d(0, -5px, 0);
+                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+                }
+                body.dark .product-card:hover {
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+                }
+
+                .star {
+                    width: 1rem;
+                    height: 1rem;
+                    fill: #f59e0b; /* amber-500 */
+                }
+
+                /* --- Dark Mode Toggle Button --- */
+                .dark-mode-toggle {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    z-index: 1000;
+                    background-color: #fff;
+                    color: #1a1a1a;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 50%;
+                    width: 48px;
+                    height: 48px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    transition: all 0.3s ease;
+                }
+                .dark-mode-toggle:hover {
+                    transform: scale(1.1);
+                }
+                body.dark .dark-mode-toggle {
+                    background-color: #2c2c2c;
+                    color: #f8f7f3;
+                    border-color: #444;
+                }
+                
+                /* --- Other Section Colors --- */
+                body.dark header {
+                    background-color: #222; /* Dark header bg */
+                    box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
+                }
+                body.dark .text-gray-800 { color: #f0f0f0; }
+                body.dark .text-gray-600 { color: #aaa; }
+                body.dark .text-gray-500 { color: #888; }
+
+                /* --- NEW: Auth Section Wrapper --- */
+                .auth-section-new {
+                    padding: 4rem 1rem;
+                    background-color: #ffffff;
+                    position: relative;
+                    overflow: hidden; /* For the gradient box blur */
+                }
+                body.dark .auth-section-new {
+                    background-color: #111;
+                }
+
+                /* --- UPDATED: Gradient Box for Auth --- */
+                .gradient-auth-box {
+                    max-width: 600px;
+                    margin: 0 auto; /* Center the box */
+                    padding: 2.5rem; /* 40px */
+                    border-radius: 1.5rem; /* 24px */
+                    text-align: center;
+                    position: relative;
+                    z-index: 2;
+                    
+                    /* NEW: Soft, diffused shadow */
+                    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.12);
+                    
+                    /* NEW: Frosted Glass Effect */
+                    background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent base */
+                    backdrop-filter: blur(12px) saturate(150%);
+                    -webkit-backdrop-filter: blur(12px) saturate(150%);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+                
+                /* NEW: Pseudo-element for the animated gradient BEHIND the box */
+                .gradient-auth-box::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: -1;
+                    border-radius: 1.5rem; /* Match parent */
+                    
+                    /* NEW: More vibrant pastel gradient */
+                    background: linear-gradient(-45deg, #ffc3a0, #ffafbd, #c3a0ff, #a0c4ff);
+                    background-size: 400% 400%;
+                    animation: gradientShift 15s ease infinite;
+                    filter: blur(20px); /* This makes the shadow softer */
+                    opacity: 0.7;
+                }
+
+                
+                @keyframes gradientShift {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+
+                /* Respect reduced motion */
+                @media (prefers-reduced-motion: reduce) {
+                    .scroller-inner { animation: none; }
+                    .gradient-auth-box::before { animation: none; }
+                }
+
+                /* Gradient box in dark mode */
+                body.dark .gradient-auth-box {
+                    background-color: rgba(44, 44, 44, 0.6); /* Darker base */
+                    backdrop-filter: blur(12px) saturate(150%);
+                    -webkit-backdrop-filter: blur(12px) saturate(150%);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.3);
+                }
+
+                body.dark .gradient-auth-box::before {
+                    opacity: 0.5; /* Tone down the gradient in dark mode */
+                }
+                
+                /* Text color is now inherited, but let's ensure it's right */
+                body.dark .gradient-auth-box .text-gray-800 {
+                    color: #f0f0f0; /* Use light text in dark mode */
+                }
+                body.dark .gradient-auth-box .text-gray-600 {
+                    color: #aaa; /* Use light text in dark mode */
+                }
+
+
+                /* --- Bubble Auth Button Styles --- */
+                .bubble-btn {
+                    position: relative;
+                    overflow: hidden; /* For the ripple */
+                    display: inline-block;
+                    padding: 1rem 2.5rem;
+                    font-size: 1.25rem; /* 20px */
+                    font-weight: 700;
+                    border-radius: 50px; /* Bubble shape */
+                    cursor: pointer;
+                    user-select: none;
+                    transition: all 0.2s ease-out;
+                    text-align: center;
+                    min-width: 240px;
+                }
+                .bubble-btn:active {
+                    transform: scale(0.96); /* Click push effect */
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                }
+
+                /* Primary Bubble Button (Light Mode) */
+                .btn-bubble-primary {
+                    background-color: #3b82f6; /* blue-600 */
+                    color: white;
+                    border: none;
+                    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.4);
+                }
+                .btn-bubble-primary:hover {
+                    background-color: #2563eb; /* blue-700 */
+                    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.4);
+                }
+
+                /* Secondary Bubble Button (Light Mode) */
+                .btn-bubble-secondary {
+                    background-color: #f8f7f3;
+                    color: #3b82f6;
+                    border: 2px solid #e0e0e0;
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.8);
+                }
+                .btn-bubble-secondary:hover {
+                    border-color: #3b82f6;
+                    color: #2563eb;
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.8);
+                }
+
+                /* Primary Bubble Button (Dark Mode) */
+                body.dark .btn-bubble-primary {
+                    background-color: #3b82f6; /* blue-600 */
+                    color: white;
+                    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.2), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.2);
+                }
+                body.dark .btn-bubble-primary:hover {
+                    background-color: #2563eb; /* blue-700 */
+                    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.2);
+                }
+
+                /* Secondary Bubble Button (Dark Mode) */
+                body.dark .btn-bubble-secondary {
+                    background-color: #2c2c2c;
+                    color: #3b82f6;
+                    border: 2px solid #444;
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 
+                                inset 0 2px 2px rgba(255, 255, 255, 0.1);
+                }
+                body.dark .btn-bubble-secondary:hover {
+                    border-color: #3b82f6;
+                    background-color: #333;
+                }
+                
+                /* Ripple Effect (from original code) */
+                .ripple {
+                    position: absolute;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.6);
+                    animation: rippleEffect 0.6s linear;
+                    pointer-events: none;
+                    transform: scale(0);
+                    opacity: 0.75;
+                    z-index: 10;
+                }
+                body.dark .ripple {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+                @keyframes rippleEffect {
+                    to { transform: scale(4); opacity: 0; }
+                }
+
+                /* --- NEW: Copyright Bar Footer --- */
+                footer.copyright-bar {
+                    /* Inverted colors */
+                    background-color: #1a1a1a; /* black */
+                    color: #f8f7f3; /* off-white */
+                    padding: 2rem 1rem;
+                }
+                body.dark footer.copyright-bar {
+                    /* Inverted for dark mode */
+                    background-color: #f8f7f3;
+                    color: #1a1a1a;
+                }
+                
+                footer.copyright-bar a {
+                    color: #f8f7f3; /* Ensure links are light */
+                }
+                footer.copyright-bar a:hover {
+                    text-decoration: underline;
+                }
+                
+                body.dark footer.copyright-bar a {
+                    color: #1a1a1a; /* Ensure links are dark */
+                }
+                body.dark footer.copyright-bar a:hover {
+                    color: #000; /* Ensure links are readable on hover */
+                }
+            `}</style>
+            
+            {/* RESTORED: Particle background canvas */}
+            <canvas ref={particleCanvasRef} id="particle-canvas"></canvas>
+
+            {/* Dark Mode Toggle Button */}
             <button
-              className="btn btn-primary"
-              onClick={(e) => {
-                createRipple(e);
-                navigate("/register");
-              }}
-              aria-label="Get Started and Sign Up"
+                onClick={() => setDarkMode(!darkMode)}
+                className="dark-mode-toggle"
+                aria-label="Toggle dark mode"
             >
-              Get Started (Sign Up)
+                {darkMode ? '🌞' : '🌙'}
             </button>
-            <button
-              className="btn btn-secondary"
-              onClick={(e) => {
-                createRipple(e);
-                navigate("/login");
-              }}
-              aria-label="Login"
-            >
-              Login
-            </button>
-          </div>
-        </div>
 
-        {/* Background particles */}
-        <div aria-hidden="true" className="particles">
-          {[...Array(30)].map((_, i) => (
-            <span key={i} className="particle" />
-          ))}
-        </div>
-      </div>
+            {/* Main content container */}
+            <div className="relative min-h-screen">
 
-      <style>{`
-        /* Import Google Font */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+                {/* 1. Header: Unicorn Studio Embed */}
+                {/* Tailwind classes: w-full bg-white shadow-sm */}
+                <header className="w-full bg-white shadow-sm">
+                    {/* The div that the Unicorn Studio script will find */}
+                    <div data-us-project="C05xsu1jKKzFUXn42yam"></div>
+                </header>
 
-        :root {
-          --primary-color: #007BFF;
-          --accent-color: #FFA500;
-          --bg-light: #f0f4f8;
-          --bg-dark: #121212;
-          --text-light: #222;
-          --text-dark: #eee;
-          --btn-primary-start: #FFA500;
-          --btn-primary-end: #FF8C00;
-          --btn-secondary-light-bg: #fff;
-          --btn-secondary-light-border: #007BFF;
-          --btn-secondary-dark-bg: #222;
-          --btn-secondary-dark-border: #FFA500;
-          --btn-shadow-light: rgba(255, 165, 0, 0.6);
-          --btn-shadow-dark: rgba(255, 165, 0, 0.9);
-          --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
-        }
+                {/* 2. Product Carousel Section */}
+                {/* Tailwind classes: py-16 sm:py-24 */}
+                <section className="py-16 sm:py-24">
+                    {/* Tailwind classes: max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        {/* Tailwind classes: text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-12 */}
+                        <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-12">
+                            Featured Artisan Crafts
+                        </h2>
+                        
+                        <div className="scroller">
+                            <div className="scroller-inner" style={{ "--card-count": 14 }}>
+                                {/* Card Set 1 */}
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/EAB308/FFFFFF?text=Jute+Bag" alt="Jute Bag" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Handcrafted Jute Bag</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">12 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"So durable and stylish! I get compliments everywhere."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/34D399/FFFFFF?text=Bangles" alt="Bangles" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Glass Bangles Set</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">31 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"The colors are so vibrant and beautiful. They feel authentic."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/F87171/FFFFFF?text=Football" alt="Football" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Hand-Stitched Football</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">8 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"This is a proper, high-quality ball. My kids love it."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/60A5FA/FFFFFF?text=Pottery" alt="Pottery" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Clay Pottery Vase</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">22 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Looks amazing on my mantle. You can feel the quality."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/A78BFA/FFFFFF?text=Shawl" alt="Shawl" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Embroidered Shawl</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">19 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"A perfect gift for my mother. The detail is incredible."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/F472B6/FFFFFF?text=Woodwork" alt="Woodwork" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Carved Wooden Box</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">4 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Smells like real wood, high quality hinge."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/22C55E/FFFFFF?text=Fabric" alt="Fabric" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Printed Cotton Fabric</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">41 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Used this to make curtains. The print is gorgeous."</p>
+                                    </div>
+                                </div>
 
-        /* Reset and base */
-        * {
-          box-sizing: border-box;
-        }
-        body, html, #root {
-          margin: 0;
-          padding: 0;
-          height: 100%;
-          font-family: 'Poppins', sans-serif;
-          background: var(--bg-light);
-          color: var(--text-light);
-          overflow-x: hidden;
-          scroll-behavior: smooth;
-        }
+                                {/* Card Set 2 (Duplicates) */}
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/EAB308/FFFFFF?text=Jute+Bag" alt="Jute Bag" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Handcrafted Jute Bag</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">12 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"So durable and stylish! I get compliments everywhere."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/34D399/FFFFFF?text=Bangles" alt="Bangles" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Glass Bangles Set</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">31 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"The colors are so vibrant and beautiful. They feel authentic."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/F87171/FFFFFF?text=Football" alt="Football" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Hand-Stitched Football</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">8 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"This is a proper, high-quality ball. My kids love it."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/60A5FA/FFFFFF?text=Pottery" alt="Pottery" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Clay Pottery Vase</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">22 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Looks amazing on my mantle. You can feel the quality."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/A78BFA/FFFFFF?text=Shawl" alt="Shawl" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Embroidered Shawl</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">19 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"A perfect gift for my mother. The detail is incredible."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/F472B6/FFFFFF?text=Woodwork" alt="Woodwork" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Carved Wooden Box</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">4 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Smells like real wood, high quality hinge."</p>
+                                    </div>
+                                </div>
+                                <div className="product-card">
+                                    <img src="https://placehold.co/400x300/22C55E/FFFFFF?text=Fabric" alt="Fabric" className="w-full h-48 object-cover rounded-t-lg" />
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-gray-800">Printed Cotton Fabric</h3>
+                                        <div className="flex items-center my-2">
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <svg className="star" viewBox="0 0 20 20"><path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path></svg>
+                                            <span className="ml-2 text-sm text-gray-500">41 Reviews</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">"Used this to make curtains. The print is gorgeous."</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-        .landing-container {
-          position: relative;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 1.5rem;
-          background: linear-gradient(-45deg, #6a11cb, #2575fc, #6a11cb, #2575fc);
-          background-size: 400% 400%;
-          animation: gradientShift 20s ease infinite;
-          transition: background 0.5s ease, color 0.5s ease;
-          overflow: hidden;
-        }
+                {/* 3. Auth Section (NEW GRADIENT BOX) */}
+                <section className="auth-section-new">
+                    <div className="gradient-auth-box">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6">
+                            Join the VLoom Community
+                        </h2>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10">
+                            Discover unique crafts or share your own creations with the world.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                            <button
+                                onClick={(e) => {
+                                    createRipple(e);
+                                    setTimeout(() => navigate('/register'), 300); // Wait for ripple
+                                }}
+                                className="bubble-btn btn-bubble-primary"
+                            >
+                                Get Started (Sign Up)
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    createRipple(e);
+                                    setTimeout(() => navigate('/login'), 300); // Wait for ripple
+                                }}
+                                className="bubble-btn btn-bubble-secondary"
+                            >
+                                Login
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
-        .landing-container.dark {
-          background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-          color: var(--text-dark);
-        }
+                {/* 4. Footer (NEW COPYRIGHT BAR) */}
+                <footer className="copyright-bar">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-4">
+                            <a href="#" className="">About Us</a>
+                            <a href="#" className="">Contact</a>
+                            <a href="#" className="">FAQ</a>
+                            <a href="#" className="">Artisan Portal</a>
+                        </div>
+                        <p className="text-sm opacity-70">&copy; 2024 VLoom. All rights reserved. Connecting artisans, one craft at a time.</p>
+                    </div>
+                </footer>
 
-        /* Dark mode text overrides */
-        .landing-container.dark .content-wrapper {
-          background: #1e1e1e;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-        }
-        .landing-container.dark .btn-primary {
-          box-shadow: 0 4px 12px var(--btn-shadow-dark);
-        }
-        .landing-container.dark .btn-primary:hover {
-          box-shadow: 0 10px 25px var(--btn-shadow-dark);
-        }
-        .landing-container.dark .btn-secondary {
-          background: var(--btn-secondary-dark-bg);
-          border-color: var(--btn-secondary-dark-border);
-          color: var(--accent-color);
-          box-shadow: 0 4px 12px rgba(255, 165, 0, 0.4);
-        }
-        .landing-container.dark .btn-secondary:hover {
-          background: var(--accent-color);
-          color: #121212;
-          border-color: transparent;
-          box-shadow: 0 10px 25px rgba(255, 165, 0, 0.8);
-        }
-        .landing-container.dark .artisan-svg {
-          filter: drop-shadow(0 0 8px var(--primary-color));
-        }
-        .landing-container.dark .artisan-svg:hover {
-          filter: drop-shadow(0 0 20px var(--accent-color));
-        }
-
-        /* Dark mode toggle button */
-        .dark-toggle {
-          position: fixed;
-          top: 1rem;
-          right: 1rem;
-          background: transparent;
-          border: none;
-          font-size: 1.8rem;
-          cursor: pointer;
-          color: inherit;
-          z-index: 1000;
-          transition: transform 0.3s ease;
-          user-select: none;
-        }
-        .dark-toggle:hover {
-          transform: rotate(20deg);
-        }
-        .dark-toggle:focus-visible {
-          outline: 3px solid var(--accent-color);
-          outline-offset: 3px;
-          border-radius: 50%;
-        }
-
-        .content-wrapper {
-          background: #fff;
-          padding: 3.5rem 3rem 3.5rem 3rem;
-          border-radius: 24px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-          max-width: 650px;
-          width: 100%;
-          text-align: center;
-          animation: fadeSlideUp 1s var(--ease) forwards;
-          opacity: 0;
-          --ease: cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .graphic-container {
-          margin-bottom: 2.5rem;
-          animation: float 5s ease-in-out infinite;
-          will-change: transform;
-          filter: drop-shadow(0 0 6px var(--primary-color));
-          transition: filter 0.3s ease;
-          cursor: default;
-        }
-        .graphic-container:hover {
-          filter: drop-shadow(0 0 18px var(--accent-color));
-        }
-
-        .artisan-svg {
-          width: 140px;
-          height: 140px;
-          stroke-width: 1.6;
-          transition: filter 0.3s ease;
-        }
-
-        .main-title {
-          font-size: 3.6rem;
-          font-weight: 700;
-          color: var(--primary-color);
-          margin-bottom: 1rem;
-          animation: fadeSlideUp 1s var(--ease) forwards;
-          animation-delay: 0.15s;
-          opacity: 0;
-          letter-spacing: 0.03em;
-          text-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .subtitle {
-          font-size: 1.4rem;
-          font-weight: 500;
-          color: var(--text-light);
-          margin-bottom: 3.5rem;
-          animation: fadeSlideUp 1s var(--ease) forwards;
-          animation-delay: 0.3s;
-          opacity: 0;
-          line-height: 1.5;
-          max-width: 480px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .button-group {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          animation: fadeSlideUp 1s var(--ease) forwards;
-          animation-delay: 0.45s;
-          opacity: 0;
-          justify-content: center;
-        }
-
-        /* Buttons */
-        .btn {
-          position: relative;
-          overflow: hidden;
-          padding: 16px 40px;
-          border: none;
-          border-radius: 14px;
-          font-size: 1.15rem;
-          font-weight: 700;
-          cursor: pointer;
-          user-select: none;
-          transition:
-            transform 0.3s var(--transition-ease),
-            box-shadow 0.3s var(--transition-ease),
-            background-position 0.6s ease;
-          outline-offset: 3px;
-          outline-color: transparent;
-          background-size: 200% 100%;
-          background-position: left center;
-          box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-        }
-
-        .btn:focus-visible {
-          outline: 3px solid var(--accent-color);
-          outline-offset: 4px;
-        }
-
-        .btn:hover {
-          transform: scale(1.07);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.2);
-          background-position: right center;
-        }
-
-        /* Ripple effect */
-        .ripple {
-          position: absolute;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.6);
-          animation: rippleEffect 0.6s linear;
-          pointer-events: none;
-          transform: scale(0);
-          opacity: 0.75;
-          z-index: 10;
-        }
-
-        @keyframes rippleEffect {
-          to {
-            transform: scale(4);
-            opacity: 0;
-          }
-        }
-
-        .btn-primary {
-          background-image: linear-gradient(45deg, var(--btn-primary-start), var(--btn-primary-end));
-          color: white;
-          box-shadow: 0 6px 15px var(--btn-shadow-light);
-          background-position: left center;
-        }
-
-        .btn-primary:hover {
-          background-image: linear-gradient(45deg, #FFB733, #FF9C1A);
-          box-shadow: 0 14px 35px var(--btn-shadow-light);
-        }
-
-        .btn-secondary {
-          background: var(--btn-secondary-light-bg);
-          color: var(--primary-color);
-          border: 2px solid var(--btn-secondary-light-border);
-          box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
-          background-position: left center;
-        }
-
-        .btn-secondary:hover {
-          background: var(--primary-color);
-          color: white;
-          border-color: transparent;
-          box-shadow: 0 14px 35px rgba(0, 123, 255, 0.7);
-          background-position: right center;
-        }
-
-        /* Animations */
-        @keyframes gradientShift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-12px);
-          }
-        }
-
-        @keyframes fadeSlideUp {
-          from {
-            opacity: 0;
-            transform: translateY(25px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        /* Responsive */
-        @media (min-width: 600px) {
-          .button-group {
-            flex-direction: row;
-            gap: 2rem;
-          }
-          .button-group > button {
-            min-width: 190px;
-          }
-          .main-title {
-            font-size: 4.2rem;
-          }
-          .subtitle {
-            font-size: 1.6rem;
-          }
-        }
-
-        /* Background particles */
-        .particles {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          pointer-events: none;
-          overflow: hidden;
-          z-index: 0;
-        }
-        .particle {
-          position: absolute;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 50%;
-          animation: particleMove 15s linear infinite;
-          opacity: 0.6;
-          filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
-        }
-        /* Randomize particle sizes and positions */
-        .particle:nth-child(odd) {
-          width: 6px;
-          height: 6px;
-          top: 10%;
-          left: 20%;
-          animation-delay: 0s;
-          animation-duration: 18s;
-        }
-        .particle:nth-child(even) {
-          width: 4px;
-          height: 4px;
-          top: 70%;
-          left: 80%;
-          animation-delay: 7s;
-          animation-duration: 20s;
-        }
-        .particle:nth-child(3) {
-          width: 8px;
-          height: 8px;
-          top: 40%;
-          left: 50%;
-          animation-delay: 3s;
-          animation-duration: 22s;
-        }
-        .particle:nth-child(4) {
-          width: 5px;
-          height: 5px;
-          top: 80%;
-          left: 30%;
-          animation-delay: 5s;
-          animation-duration: 19s;
-        }
-        /* ... add more random positions for others */
-        .particle:nth-child(n+5) {
-          width: 3px;
-          height: 3px;
-          top: calc(10% + 80 * var(--i));
-          left: calc(10% + 80 * var(--i));
-          animation-delay: calc(2s * var(--i));
-          animation-duration: calc(15s + 5 * var(--i));
-        }
-
-        @keyframes particleMove {
-          0% {
-            transform: translateY(0) translateX(0);
-            opacity: 0.6;
-          }
-          50% {
-            transform: translateY(-20px) translateX(10px);
-            opacity: 0.3;
-          }
-          100% {
-            transform: translateY(0) translateX(0);
-            opacity: 0.6;
-          }
-        }
-      `}</style>
-    </>
-  );
+            </div>
+        </>
+    );
 }
-
-export default LandingPage;
