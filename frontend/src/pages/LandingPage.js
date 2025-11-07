@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Spline from '@splinetool/react-spline';  // ✅ Add this import
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -574,9 +575,10 @@ export default function LandingPage() {
 
                 {/* 1. Header: Unicorn Studio Embed */}
                 {/* Tailwind classes: w-full bg-white shadow-sm */}
-                <header className="w-full bg-white shadow-sm">
-                    {/* The div that the Unicorn Studio script will find */}
-                    <div data-us-project="C05xsu1jKKzFUXn42yam"></div>
+                <header className="w-full bg-white shadow-sm h-[80vh] sm:h-[90vh]">
+                    <Spline
+                        scene="https://prod.spline.design/LN2XBlhmAdr4zjdC/scene.splinecode"
+                    />
                 </header>
 
                 {/* 2. Product Carousel Section */}

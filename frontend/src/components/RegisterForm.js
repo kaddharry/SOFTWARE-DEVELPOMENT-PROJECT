@@ -3,12 +3,22 @@ import { Link } from "react-router-dom";
 
 // A simple SVG icon for the registration page header
 const RegisterIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#007BFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="8.5" cy="7" r="4" />
-        <line x1="20" y1="8" x2="20" y2="14" />
-        <line x1="23" y1="11" x2="17" y2="11" />
-    </svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#007BFF"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="8.5" cy="7" r="4" />
+    <line x1="20" y1="8" x2="20" y2="14" />
+    <line x1="23" y1="11" x2="17" y2="11" />
+  </svg>
 );
 
 function RegisterForm({ onNext }) {
@@ -29,13 +39,21 @@ function RegisterForm({ onNext }) {
 
   const isValid = () => {
     const { name, shopName, address, city, state, gender, phone } = formData;
-    if (!name || !shopName || !address || !city || !state || !gender || !phone) {
+    if (
+      !name ||
+      !shopName ||
+      !address ||
+      !city ||
+      !state ||
+      !gender ||
+      !phone
+    ) {
       alert("Please fill all required fields!");
       return false;
     }
     if (!/^\d{10}$/.test(phone)) {
-        alert("Please enter a valid 10-digit phone number.");
-        return false;
+      alert("Please enter a valid 10-digit phone number.");
+      return false;
     }
     return true;
   };
@@ -58,38 +76,95 @@ function RegisterForm({ onNext }) {
           <form onSubmit={handleNext}>
             <div className="input-group">
               <label htmlFor="name">Full Name</label>
-              <input id="name" type="text" name="name" placeholder="Ramu Kaka" value={formData.name} onChange={handleChange} required />
+              <input
+                id="name"
+                type="text"
+                name="name"
+                placeholder="Ramu Kaka"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="input-group">
               <label htmlFor="shopName">Shop Name</label>
-              <input id="shopName" type="text" name="shopName" placeholder="e.g., B.Tech Sabun wala" value={formData.shopName} onChange={handleChange} required />
+              <input
+                id="shopName"
+                type="text"
+                name="shopName"
+                placeholder="e.g., B.Tech Sabun wala"
+                value={formData.shopName}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="input-group">
               <label htmlFor="phone">Phone Number</label>
-              <input id="phone" type="tel" name="phone" placeholder="10-digit number for verification" value={formData.phone} onChange={handleChange} maxLength="10" required />
+              <input
+                id="phone"
+                type="tel"
+                name="phone"
+                placeholder="10-digit number for verification"
+                value={formData.phone}
+                onChange={handleChange}
+                maxLength="10"
+                required
+              />
             </div>
             <div className="input-group">
               <label htmlFor="address">Address</label>
-              <input id="address" type="text" name="address" placeholder="e.g., Sandhu Colony" value={formData.address} onChange={handleChange} required />
+              <input
+                id="address"
+                type="text"
+                name="address"
+                placeholder="e.g., Sandhu Colony"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              />
             </div>
-             <div className="input-group">
+            <div className="input-group">
               <label htmlFor="city">City</label>
-              <input id="city" type="text" name="city" placeholder="Anytown" value={formData.city} onChange={handleChange} required />
+              <input
+                id="city"
+                type="text"
+                name="city"
+                placeholder="Anytown"
+                value={formData.city}
+                onChange={handleChange}
+                required
+              />
             </div>
-             <div className="input-group">
+            <div className="input-group">
               <label htmlFor="state">State</label>
-              <input id="state" type="text" name="state" placeholder="State" value={formData.state} onChange={handleChange} required />
+              <input
+                id="state"
+                type="text"
+                name="state"
+                placeholder="State"
+                value={formData.state}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="input-group">
               <label htmlFor="gender">Gender</label>
-              <select id="gender" name="gender" value={formData.gender} onChange={handleChange} required>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                required
+              >
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
             </div>
-            <button type="submit" className="register-btn">Next: Verify Phone</button>
+            <button type="submit" className="register-btn">
+              Next: Verify Phone
+            </button>
           </form>
           <p className="login-link">
             Already have an account? <Link to="/login">Login</Link>
@@ -116,6 +191,9 @@ function RegisterForm({ onNext }) {
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
         }
         .register-header {
+        display: flex;
+          flex-direction: column;
+          align-items: center;
           text-align: center;
           margin-bottom: 2rem;
         }
