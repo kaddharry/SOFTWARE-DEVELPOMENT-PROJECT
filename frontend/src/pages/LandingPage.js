@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Spline from '@splinetool/react-spline';  // ✅ Add this import
-
+//adding comment to retry on git 
 export default function LandingPage() {
     const navigate = useNavigate();
     const [darkMode, setDarkMode] = useState(false);
