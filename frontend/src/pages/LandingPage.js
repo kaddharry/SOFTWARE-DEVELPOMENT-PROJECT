@@ -1,6 +1,7 @@
 import React, { Suspense } from "react"; // Simplified imports
 import { useNavigate } from "react-router-dom";
 // This is the correct import for your project
+// //retry
 import Spline from "@splinetool/react-spline";
 
 export default function LandingPage() {
