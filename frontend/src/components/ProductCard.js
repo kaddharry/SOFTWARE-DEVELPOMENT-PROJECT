@@ -28,28 +28,9 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                     <h3 className="product-card-name">{product.name}</h3>
                     <p className="product-card-seller">by {product.sellerId ? product.sellerId.shopName : 'Artisan'}</p>
                     <p className="product-card-price">₹{product.price}</p>
-                    
-                    {isSellerView ? (
+
+                    {isSellerView && (
                         <p className="product-card-stock">Stock: {product.quantity}</p>
-                    ) : (
-                        <div className="product-card-actions">
-                            <button
-                                className="product-card-btn add"
-                                aria-label={`Add ${product.name} to cart`}
-                                onClick={(e) => handleActionClick(e, onAddToCart)}
-                                disabled={isOutOfStock}
-                            >
-                                <ShoppingCart size={18} />
-                            </button>
-                            <button
-                                className="product-card-btn buy"
-                                aria-label={`Buy ${product.name} now`}
-                                onClick={(e) => handleActionClick(e, onBuyNow)}
-                                disabled={isOutOfStock}
-                            >
-                                <Zap size={18} />
-                            </button>
-                        </div>
                     )}
                 </div>
             </div>
@@ -167,7 +148,7 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 /* Mobile-specific styles */
                 @media (max-width: 768px) {
                     .product-card-wrapper {
-                        height: 220px;
+                        height: 200px;
                     }
                     .product-card-image-container {
                         height: 70%;
@@ -178,29 +159,19 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                         padding: 6px;
                         display: flex;
                         flex-direction: column;
-                        justify-content: space-between;
+                        justify-content: flex-start;
                     }
                     .product-card-name {
                         font-size: 0.9rem;
-                        margin: 0;
+                        margin: 0 0 2px;
                     }
                     .product-card-seller {
                         font-size: 0.8rem;
-                        margin: 0;
+                        margin: 0 0 2px;
                     }
                     .product-card-price {
                         font-size: 1rem;
                         margin: 0;
-                    }
-                    .product-card-actions {
-                        display: flex;
-                        gap: 4px;
-                        margin-top: 4px;
-                    }
-                    .product-card-btn {
-                        flex: 1;
-                        padding: 6px;
-                        font-size: 0.8rem;
                     }
                 }
 
