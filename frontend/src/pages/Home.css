@@ -58,8 +58,8 @@
 /* Mobile grid layout */
 @media (max-width: 768px) {
     .card-container {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
     }
 
     .product-card-image-container {
@@ -89,8 +89,12 @@
         font-size: 0.8rem;
     }
 
+    .card-wrapper {
+        max-width: 140px;
+    }
+
     .skeleton-card .skeleton-image {
-        height: 128px; /* Match new aspect ratio */
+        height: 112px; /* Match new card size */
     }
 
     .skeleton-text-container {
