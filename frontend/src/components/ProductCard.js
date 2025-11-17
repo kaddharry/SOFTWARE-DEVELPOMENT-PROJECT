@@ -26,6 +26,7 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 </div>
                 <div className="product-card-details">
                     <h3 className="product-card-name">{product.name}</h3>
+                    <p className="product-card-seller">by {product.sellerId ? product.sellerId.shopName : 'Artisan'}</p>
                     <p className="product-card-price">₹{product.price}</p>
                     
                     {isSellerView ? (
@@ -115,14 +116,19 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                     font-size: 1.1rem;
                     font-weight: 600;
                     color: #212529;
-                    margin: 0 0 8px;
+                    margin: 0 0 4px;
                     flex-grow: 1; /* Pushes price/buttons to the bottom */
+                }
+                .product-card-seller {
+                    font-size: 0.9rem;
+                    color: #666;
+                    margin: 0 0 4px;
                 }
                 .product-card-price {
                     font-size: 1.2rem;
                     font-weight: 700;
                     color: #0056b3;
-                    margin: 0 0 12px;
+                    margin: 0 0 8px;
                 }
                 .product-card-stock {
                     font-size: 1rem;
@@ -158,36 +164,46 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 .product-card-btn.add { background: linear-gradient(45deg, #0D6EFD, #3da9fc); }
                 .product-card-btn.buy { background: linear-gradient(45deg, #FF9900, #FD7E14); }
 
-                /* Mobile-specific styles for Blinkit-like layout */
+                /* Mobile-specific styles */
                 @media (max-width: 768px) {
-                    .product-card-actions {
-                        position: absolute;
-                        bottom: 8px;
-                        right: 8px;
-                        gap: 4px;
-                    }
-                    .product-card-btn {
-                        width: 32px;
-                        height: 32px;
-                        padding: 0;
-                        border-radius: 50%;
-                        font-size: 0.8rem;
-                    }
-                    .product-card-btn.add {
-                        background: #fff;
-                        color: #0D6EFD;
-                        border: 1px solid #0D6EFD;
-                    }
-                    .product-card-btn.buy {
-                        display: none; /* Hide buy button on mobile for simplicity */
+                    .product-card-wrapper {
+                        height: 180px;
                     }
                     .product-card-image-container {
-                        position: relative;
+                        height: 70%;
+                        padding-top: 0;
+                    }
+                    .product-card-details {
+                        height: 30%;
+                        padding: 4px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                    }
+                    .product-card-name {
+                        font-size: 0.8rem;
+                        margin: 0;
+                    }
+                    .product-card-seller {
+                        font-size: 0.7rem;
+                        margin: 0;
+                    }
+                    .product-card-price {
+                        font-size: 0.9rem;
+                        margin: 0;
                     }
                     .product-card-actions {
-                        z-index: 2;
+                        display: flex;
+                        gap: 2px;
+                        margin-top: 2px;
+                    }
+                    .product-card-btn {
+                        flex: 1;
+                        padding: 4px;
+                        font-size: 0.7rem;
                     }
                 }
+
             `}</style>
         </div>
     );
