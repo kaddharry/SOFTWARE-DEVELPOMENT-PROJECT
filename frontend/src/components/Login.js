@@ -84,6 +84,7 @@ function Login({ onLoginSuccess }) {
                   onChange={(e) => setPhone(e.target.value)}
                   maxLength="10"
                   required
+                  autoComplete="tel"
                 />
               </div>
               <div className="input-group">
@@ -95,6 +96,7 @@ function Login({ onLoginSuccess }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
               <button type="submit" className="login-btn" disabled={isLoading}>

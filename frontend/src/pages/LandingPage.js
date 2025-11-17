@@ -51,22 +51,22 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Smooth mouse tracking animation
-  useEffect(() => {
-    const animate = () => {
-      const target = mouseTargetRef.current;
-      const current = mouseCurrentRef.current;
-      current.x += (target.x - current.x) * 0.1;
-      current.y += (target.y - current.y) * 0.1;
-      if (splineRef.current) {
-        splineRef.current.setVariable('mouseX', current.x);
-        splineRef.current.setVariable('mouseY', current.y);
-      }
-      requestAnimationFrame(animate);
-    };
-    const id = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(id);
-  }, []);
+  // Smooth mouse tracking animation - Disabled due to missing variables in Spline scene
+  // useEffect(() => {
+  //   const animate = () => {
+  //     const target = mouseTargetRef.current;
+  //     const current = mouseCurrentRef.current;
+  //     current.x += (target.x - current.x) * 0.1;
+  //     current.y += (target.y - current.y) * 0.1;
+  //     if (splineRef.current) {
+  //       splineRef.current.setVariable('mouseX', current.x);
+  //       splineRef.current.setVariable('mouseY', current.y);
+  //     }
+  //     requestAnimationFrame(animate);
+  //   };
+  //   const id = requestAnimationFrame(animate);
+  //   return () => cancelAnimationFrame(id);
+  // }, []);
 
   const createRipple = (event) => {
     const button = event.currentTarget;
