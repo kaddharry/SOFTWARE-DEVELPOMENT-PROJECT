@@ -57,7 +57,7 @@ router.post("/create", async (req, res) => {
 // Get all orders for a specific buyer
 router.get("/by-buyer/:buyerId", async (req, res) => {
     try {
-        const orders = await Order.find({ buyerId: req.params.buyerId }).populate('sellerId', 'shopName').sort({ createdAt: -1 });
+        const orders = await Order.find({ buyerId: req.params.buyerId }).populate('sellerId', 'shopName phone email').sort({ createdAt: -1 });
         res.json(orders);
     } catch (err) {
         console.error("Error fetching buyer's orders:", err);
@@ -108,6 +108,74 @@ router.put("/update-status/:orderId", async (req, res) => {
     } catch (err) {
         console.error("Error updating order status:", err);
         res.status(500).json({ message: "Server error while updating status." });
+    }
+});
+
+// **NEW**: Allow a buyer to report a delivery issue
+router.put("/report-issue/:orderId", async (req, res) => {
+    try {
+        const { issueType, issueDescription } = req.body;
+        const updateData = {
+            hasDeliveryIssue: true,
+            issueType,
+            issueDescription,
+            buyerResolved: false,
+            sellerResolved: false
+        };
+        const order = await Order.findByIdAndUpdate(
+            req.params.orderId,
+            updateData,
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: "Order not found." });
+        }
+        res.json({ message: "Delivery issue reported successfully!", order });
+    } catch (err) {
+        console.error("Error reporting delivery issue:", err);
+        res.status(500).json({ message: "Server error while reporting issue." });
+    }
+});
+
+// **NEW**: Allow buyer or seller to mark issue as resolved
+router.put("/resolve-issue/:orderId", async (req, res) => {
+    try {
+        const { userType } = req.body; // 'buyer' or 'seller'
+        const updateData = userType === 'buyer' ? { buyerResolved: true } : { sellerResolved: true };
+        const order = await Order.findByIdAndUpdate(
+            req.params.orderId,
+            updateData,
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: "Order not found." });
+        }
+        // If both have resolved, mark as resolved
+        if (order.buyerResolved && order.sellerResolved) {
+            await Order.findByIdAndUpdate(req.params.orderId, { hasDeliveryIssue: false });
+        }
+        res.json({ message: "Issue resolution updated!", order });
+    } catch (err) {
+        console.error("Error resolving issue:", err);
+        res.status(500).json({ message: "Server error while resolving issue." });
+    }
+});
+
+// **NEW**: Get count of unresolved issues for a seller
+router.get("/issues-count/:sellerId", async (req, res) => {
+    try {
+        const count = await Order.countDocuments({
+            sellerId: req.params.sellerId,
+            hasDeliveryIssue: true,
+            $or: [
+                { buyerResolved: false },
+                { sellerResolved: false }
+            ]
+        });
+        res.json({ count });
+    } catch (err) {
+        console.error("Error fetching issues count:", err);
+        res.status(500).json({ message: "Server error while fetching count." });
     }
 });
 

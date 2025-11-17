@@ -238,3 +238,37 @@
     background-color: #138496;
 }
 
+/* --- Issue Card Styles --- */
+.issue-card {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+.issues-title {
+    color: #dc3545;
+}
+
+.resolve-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.resolve-btn:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.resolved-text {
+    color: #28a745;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 5px 0;
+}
+

@@ -58,6 +58,8 @@ function App() {
     message: "",
   });
 
+  const [issuesCount, setIssuesCount] = useState(0);
+
   // --- Effects ---
   useEffect(() => {
     if (userData) {
@@ -77,6 +79,24 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Fetch issues count for sellers
+  useEffect(() => {
+    if (verified && userData && userData.role === 'seller') {
+      const fetchIssuesCount = async () => {
+        try {
+          const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/issues-count/${userData._id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setIssuesCount(data.count);
+          }
+        } catch (err) {
+          console.error("Error fetching issues count:", err);
+        }
+      };
+      fetchIssuesCount();
+    }
+  }, [verified, userData]);
 
   // --- Event Handlers & Functions ---
 
@@ -269,7 +289,7 @@ function App() {
           </Routes>
         </div>
 
-        {verified && !hideNav && <BottomNav />}
+        {verified && !hideNav && <BottomNav issuesCount={issuesCount} />}
       </div>
 
       <style>{`

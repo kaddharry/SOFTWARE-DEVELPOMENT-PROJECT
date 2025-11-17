@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import "./BottomNav.css";
 import { Home, ShoppingBag, User } from "lucide-react"; // nice icons
 
-function BottomNav() {
+function BottomNav({ issuesCount }) {
   return (
     <div className="bottom-nav">
       {/* FIXED: The link now correctly points to "/home" */}
@@ -14,6 +14,7 @@ function BottomNav() {
       <NavLink to="/orders" className="nav-item">
         <ShoppingBag size={22} />
         <span>Orders</span>
+        {issuesCount > 0 && <span className="notification-badge">{issuesCount}</span>}
       </NavLink>
       <NavLink to="/profile" className="nav-item">
         <User size={22} />

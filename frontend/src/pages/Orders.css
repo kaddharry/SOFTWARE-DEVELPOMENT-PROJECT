@@ -294,3 +294,193 @@
     color: #1a3b5d;
     font-size: 1.1rem;
 }
+
+/* --- Confirmation Modal Styles --- */
+.confirmation-modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+    text-align: center;
+    animation: slideUp 0.3s ease-out;
+}
+
+.confirmation-icon {
+    margin-bottom: 20px;
+}
+
+.confirmation-modal-content h2 {
+    color: #1a3b5d;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.confirmation-modal-content p {
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.confirmation-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.confirmation-actions button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.cancel-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.confirm-btn {
+    background: #007BFF;
+    color: white;
+}
+
+.confirm-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.seller-contact-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.seller-contact-info h3 {
+    color: #1a3b5d;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.seller-contact-info p {
+    margin: 8px 0;
+    font-size: 0.95rem;
+}
+
+.seller-contact-info a {
+    color: #007BFF;
+    text-decoration: none;
+}
+
+.seller-contact-info a:hover {
+    text-decoration: underline;
+}
+
+/* --- Issue Form Styles --- */
+.issue-form {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.issue-option {
+    display: block;
+    margin: 10px 0;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.issue-option input[type="radio"] {
+    margin: 0;
+}
+
+.issue-description {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    resize: vertical;
+}
+
+/* --- Order Card Footer Styles --- */
+.order-card-footer {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+    text-align: center;
+}
+
+.report-issue-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.report-issue-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.issue-reported-text {
+    color: #28a745;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.resolve-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 5px;
+    transition: all 0.2s ease;
+}
+
+.resolve-btn:hover {
+    background-color: #218838;
+}
+
+.resolved-text {
+    color: #28a745;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 2px 0;
+}

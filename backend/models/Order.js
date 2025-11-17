@@ -27,6 +27,10 @@ const orderSchema = new mongoose.Schema(
     // --- THIS IS THE NEW FIELD ---
     // Tracks if the buyer has reported a delivery issue.
     hasDeliveryIssue: { type: Boolean, default: false },
+    issueType: { type: String, enum: ['not_received', 'damaged', 'wrong_item', 'incomplete', 'other'], default: null },
+    issueDescription: { type: String, default: '' },
+    buyerResolved: { type: Boolean, default: false },
+    sellerResolved: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

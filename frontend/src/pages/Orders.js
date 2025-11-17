@@ -4,7 +4,7 @@ import { ShoppingBag, X, AlertTriangle, Phone, Shield } from 'lucide-react';
 import './Orders.css';
 
 // --- Reusable Confirmation Modal ---
-const IssueConfirmationModal = ({ onConfirm, onCancel, step }) => {
+const IssueConfirmationModal = ({ onConfirm, onCancel, step, seller, issueType, setIssueType, issueDescription, setIssueDescription }) => {
     const messages = {
         1: {
             title: "Report Delivery Issue?",
@@ -12,6 +12,11 @@ const IssueConfirmationModal = ({ onConfirm, onCancel, step }) => {
             confirmText: "Yes, Proceed"
         },
         2: {
+            title: "What problems are you facing with the order?",
+            body: "Please select the issue type and provide details if needed.",
+            confirmText: "Report Issue"
+        },
+        3: {
             title: "Contact Seller",
             body: "Your issue has been flagged. You can now contact the seller directly to resolve this.",
             confirmText: "Okay"
@@ -19,17 +24,57 @@ const IssueConfirmationModal = ({ onConfirm, onCancel, step }) => {
     };
     const current = messages[step];
 
+    const issueOptions = [
+        { value: 'not_received', label: 'Order not received' },
+        { value: 'damaged', label: 'Item damaged or broken' },
+        { value: 'wrong_item', label: 'Wrong item received' },
+        { value: 'incomplete', label: 'Order incomplete' },
+        { value: 'other', label: 'Other' }
+    ];
+
     return (
         <div className="modal-overlay">
             <div className="confirmation-modal-content">
                 <div className="confirmation-icon">
-                    {step === 1 ? <AlertTriangle size={48} /> : <Phone size={48} />}
+                    {step === 1 ? <AlertTriangle size={48} /> : step === 2 ? <AlertTriangle size={48} /> : <Phone size={48} />}
                 </div>
                 <h2>{current.title}</h2>
                 <p>{current.body}</p>
+                {step === 2 && (
+                    <div className="issue-form">
+                        {issueOptions.map(option => (
+                            <label key={option.value} className="issue-option">
+                                <input
+                                    type="radio"
+                                    name="issueType"
+                                    value={option.value}
+                                    checked={issueType === option.value}
+                                    onChange={(e) => setIssueType(e.target.value)}
+                                />
+                                {option.label}
+                            </label>
+                        ))}
+                        {issueType === 'other' && (
+                            <textarea
+                                placeholder="Please describe the issue..."
+                                value={issueDescription}
+                                onChange={(e) => setIssueDescription(e.target.value)}
+                                className="issue-description"
+                            />
+                        )}
+                    </div>
+                )}
+                {step === 3 && seller && (
+                    <div className="seller-contact-info">
+                        <h3>Seller Details</h3>
+                        <p><strong>Shop:</strong> {seller.shopName}</p>
+                        <p><strong>Phone:</strong> <a href={`tel:${seller.phone}`}>{seller.phone}</a></p>
+                        <p><strong>Email:</strong> <a href={`mailto:${seller.email}`}>{seller.email}</a></p>
+                    </div>
+                )}
                 <div className="confirmation-actions">
                     {step === 1 && <button className="cancel-btn" onClick={onCancel}>Wait Longer</button>}
-                    <button className="confirm-btn" onClick={onConfirm}>{current.confirmText}</button>
+                    <button className="confirm-btn" onClick={onConfirm} disabled={step === 2 && !issueType}>{current.confirmText}</button>
                 </div>
             </div>
         </div>
@@ -38,7 +83,7 @@ const IssueConfirmationModal = ({ onConfirm, onCancel, step }) => {
 
 
 // --- Redesigned Order Detail Modal (Receipt) ---
-const OrderDetailModal = ({ order, onClose }) => {
+const OrderDetailModal = ({ order, onClose, onReportIssue }) => {
     if (!order) return null;
 
     // --- FIX: Correctly calculate subtotal from all items and quantities ---
@@ -91,6 +136,20 @@ const OrderDetailModal = ({ order, onClose }) => {
                         <span>Method:</span><span>{order.paymentMethod}</span>
                     </div>
                 </div>
+
+                {/* Report Issue Button */}
+                {order.status === 'Shipped' && !order.hasDeliveryIssue && onReportIssue && (
+                    <div className="receipt-section">
+                        <button className="report-issue-btn" onClick={() => onReportIssue(order)}>
+                            <AlertTriangle size={16} /> I haven't received this order
+                        </button>
+                    </div>
+                )}
+                {order.hasDeliveryIssue && (
+                    <div className="receipt-section">
+                        <p className="issue-reported-text"><Shield size={16} /> Delivery issue reported</p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -105,6 +164,8 @@ function Orders() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [issueOrder, setIssueOrder] = useState(null); // Order for which issue is being raised
     const [modalStep, setModalStep] = useState(1);
+    const [issueType, setIssueType] = useState('');
+    const [issueDescription, setIssueDescription] = useState('');
     const navigate = useNavigate();
 
     const fetchOrders = useCallback(async () => {
@@ -139,37 +200,62 @@ function Orders() {
 
     const handleConfirmIssue = async () => {
         if (modalStep === 1) {
+            setModalStep(2); // Move to issue selection
+        } else if (modalStep === 2) {
             try {
-                // Call API to flag the order
+                // Call API to report issue with details
                 const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/report-issue/${issueOrder._id}`, {
                     method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issueType, issueDescription })
                 });
                 if (!res.ok) throw new Error("Failed to report issue.");
-                
+
                 // Update the local state to reflect the change immediately
-                setOrders(prevOrders => prevOrders.map(o => 
-                    o._id === issueOrder._id ? { ...o, hasDeliveryIssue: true } : o
+                setOrders(prevOrders => prevOrders.map(o =>
+                    o._id === issueOrder._id ? { ...o, hasDeliveryIssue: true, issueType, issueDescription } : o
                 ));
 
-                setModalStep(2); // Move to the "Contact Seller" step
+                setModalStep(3); // Move to the "Contact Seller" step
             } catch (err) {
                 alert(err.message);
                 setIssueOrder(null);
+                setIssueType('');
+                setIssueDescription('');
             }
         } else {
             // This is for the "Okay" button on the final step
             setIssueOrder(null);
+            setIssueType('');
+            setIssueDescription('');
         }
     };
 
     const handleCancelIssue = () => {
         setIssueOrder(null);
+        setModalStep(1);
+        setIssueType('');
+        setIssueDescription('');
+    };
+
+    const handleResolveIssue = async (orderId, userType) => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/resolve-issue/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userType }),
+            });
+            if (!res.ok) throw new Error("Failed to resolve issue.");
+            fetchOrders();
+        } catch (err) {
+            alert(err.message);
+        }
     };
 
     return (
         <>
-            <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-            {issueOrder && <IssueConfirmationModal onConfirm={handleConfirmIssue} onCancel={handleCancelIssue} step={modalStep} />}
+            <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} onReportIssue={handleReportIssueClick} />
+            {issueOrder && <IssueConfirmationModal onConfirm={handleConfirmIssue} onCancel={handleCancelIssue} step={modalStep} seller={issueOrder.sellerId} issueType={issueType} setIssueType={setIssueType} issueDescription={issueDescription} setIssueDescription={setIssueDescription} />}
 
             <div className="orders-container">
                 <div className="orders-header">
@@ -212,7 +298,16 @@ function Orders() {
                                     {order.status === 'Shipped' && (
                                         <div className="order-card-footer">
                                             {order.hasDeliveryIssue ? (
-                                                <p className="issue-reported-text"><Shield size={16} /> Issue Reported</p>
+                                                <>
+                                                    <p className="issue-reported-text"><Shield size={16} /> Issue Reported</p>
+                                                    {!order.buyerResolved && (
+                                                        <button className="resolve-btn" onClick={() => handleResolveIssue(order._id, 'buyer')}>
+                                                            Mark as Resolved
+                                                        </button>
+                                                    )}
+                                                    {order.buyerResolved && <p className="resolved-text">You marked as resolved</p>}
+                                                    {order.sellerResolved && <p className="resolved-text">Seller also resolved</p>}
+                                                </>
                                             ) : (
                                                 <button className="report-issue-btn" onClick={() => handleReportIssueClick(order)}>
                                                     <AlertTriangle size={16} /> I haven't received this

@@ -49,6 +49,20 @@ function SellerOrders() {
             alert(err.message);
         }
     };
+
+    const handleResolveIssue = async (orderId, userType) => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/resolve-issue/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userType }),
+            });
+            if (!res.ok) throw new Error("Failed to resolve issue.");
+            fetchSellerOrders();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
     
     const filteredOrders = useMemo(() => {
         return orders.filter(order =>
@@ -95,15 +109,26 @@ function SellerOrders() {
                     {/* --- NEW: Delivery Issues Section --- */}
                     {deliveryIssues.length > 0 && (
                         <>
-                            <h2 className="section-title issues-title"><AlertTriangle /> Delivery Issues</h2>
+                            <h2 className="section-title issues-title"><AlertTriangle /> Order Issues</h2>
                             <div className="orders-list">
                                 {deliveryIssues.map(order => (
                                     <div key={order._id} className="order-item-card issue-card">
                                         <div className="order-card-main-info">
                                             <p><strong>Order ID:</strong> {order._id}</p>
                                             <p><strong>Buyer:</strong> {order.buyerId ? order.buyerId.name : 'N/A'}</p>
-                                            <p><strong>Contact:</strong> {order.shippingAddress?.phone || 'N/A'}</p>
+                                            <p><strong>Contact:</strong> <a href={`tel:${order.shippingAddress?.phone}`}>{order.shippingAddress?.phone || 'N/A'}</a></p>
+                                            <p><strong>Issue:</strong> {order.issueType ? order.issueType.replace('_', ' ') : 'N/A'}</p>
+                                            {order.issueDescription && <p><strong>Description:</strong> {order.issueDescription}</p>}
                                             <p className={`order-status status-${order.status.toLowerCase()}`}>{order.status}</p>
+                                        </div>
+                                        <div className="order-actions">
+                                            {!order.sellerResolved && (
+                                                <button className="resolve-btn" onClick={() => handleResolveIssue(order._id, 'seller')}>
+                                                    Mark as Resolved
+                                                </button>
+                                            )}
+                                            {order.sellerResolved && <p className="resolved-text">You marked as resolved</p>}
+                                            {order.buyerResolved && <p className="resolved-text">Buyer also resolved</p>}
                                         </div>
                                     </div>
                                 ))}
