@@ -1,13 +1,73 @@
-import React, { Suspense } from "react"; // Simplified imports
+import React, { Suspense, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-// This is the correct import for your project
-// //retry
 import Spline from "@splinetool/react-spline";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const splineRef = useRef();
+  const mouseTargetRef = useRef({ x: 0.5, y: 0.5 });
+  const mouseCurrentRef = useRef({ x: 0.5, y: 0.5 });
 
-  // Kept the ripple effect for your bubble buttons
+  const onSplineLoad = (spline) => {
+    splineRef.current = spline;
+  };
+
+  // Prevent zoom on mobile and desktop
+  useEffect(() => {
+    // Prevent pinch zoom on touch devices
+    const preventZoom = (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    // Prevent ctrl/cmd + scroll zoom
+    const preventScrollZoom = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
+    };
+
+    // Prevent double-tap zoom on mobile
+    let lastTouchEnd = 0;
+    const preventDoubleTapZoom = (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    };
+
+    document.addEventListener('touchstart', preventZoom, { passive: false });
+    document.addEventListener('touchmove', preventZoom, { passive: false });
+    document.addEventListener('wheel', preventScrollZoom, { passive: false });
+    document.addEventListener('touchend', preventDoubleTapZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventZoom);
+      document.removeEventListener('touchmove', preventZoom);
+      document.removeEventListener('wheel', preventScrollZoom);
+      document.removeEventListener('touchend', preventDoubleTapZoom);
+    };
+  }, []);
+
+  // Smooth mouse tracking animation
+  useEffect(() => {
+    const animate = () => {
+      const target = mouseTargetRef.current;
+      const current = mouseCurrentRef.current;
+      current.x += (target.x - current.x) * 0.1;
+      current.y += (target.y - current.y) * 0.1;
+      if (splineRef.current) {
+        splineRef.current.setVariable('mouseX', current.x);
+        splineRef.current.setVariable('mouseY', current.y);
+      }
+      requestAnimationFrame(animate);
+    };
+    const id = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const createRipple = (event) => {
     const button = event.currentTarget;
     const circle = document.createElement("span");
@@ -31,108 +91,154 @@ export default function LandingPage() {
     setTimeout(() => circle.remove(), 600);
   };
 
+  const handleMouseMove = (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    mouseTargetRef.current = { x, y };
+  };
+
   return (
     <>
       <style>{`
-                /* --- REMOVED: All body, dark mode, and particle styles --- */
+                /* Prevent zoom globally */
+                * {
+                    touch-action: pan-x pan-y;
+                    -ms-touch-action: pan-x pan-y;
+                }
 
-                /* --- NEW: Spline Background (Layer 1) --- */
+                html, body {
+                    overflow-x: hidden;
+                    width: 100%;
+                    position: relative;
+                }
+
+                /* Spline Background (Layer 1) */
                 .spline-background {
                     position: fixed;
                     top: 0;
                     left: 0;
                     width: 100%;
                     height: 100vh;
-                    z-index: 1; /* Sits behind everything */
-                    /* This is part of the cursor fix */
-                    pointer-events: auto; 
+                    z-index: 1;
+                    pointer-events: auto;
+                    overflow: hidden;
                 }
 
-                /* --- NEW: Main Content Container (Layer 2) --- */
+                /* Prevent Spline canvas zoom */
+                .spline-background canvas {
+                    touch-action: none !important;
+                }
+
+                /* Main Content Container (Layer 2) */
                 .page-content {
                     position: relative;
-                    z-index: 10; /* Sits on top of the Spline scene */
+                    z-index: 10;
                     width: 100%;
-                    /* This is the main part of the cursor fix: */
-                    /* Mouse events pass THROUGH this layer... */
-                    pointer-events: none; 
+                    pointer-events: none;
                 }
 
-                /* --- NEW: Header (Title) --- */
-                /* This is a simple spacer to show the title over the 3D scene */
-                /* --- Cinematic Fullscreen Header --- */
-/* --- Centered Cinematic Header --- */
-.landing-header {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  position: relative;
-  z-index: 5;
-  pointer-events: none;
-}
+                /* Centered Cinematic Header */
+                .landing-header {
+                    height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    position: relative;
+                    z-index: 5;
+                    pointer-events: none;
+                }
 
-.header-content {
-  max-width: 850px;
-  padding: 2rem;
-  text-align: center;
-  pointer-events: none;
-}
+                .header-content {
+                    max-width: 850px;
+                    padding: 2rem;
+                    text-align: center;
+                    pointer-events: none;
+                }
 
-/* --- VLoom Title --- */
-.header-title {
-  font-family: "Poppins", "Inter", sans-serif;
-  font-weight: 700;
-  font-size: clamp(4rem, 9vw, 7rem);
-  letter-spacing: -1px;
-  line-height: 1;
-  background: linear-gradient(115deg, #ffffff 5%, #e3e9ff 30%, #c7b8ff 60%, #a3d8ff 95%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 
-    0 0 35px rgba(180, 210, 255, 0.4),
-    0 0 70px rgba(180, 240, 255, 0.2);
-  animation: softFloat 6s ease-in-out infinite alternate;
-  opacity: 1;
-}
+                /* Enhanced VLoom Title */
+                .header-title {
+                    font-family: "Poppins", "Inter", sans-serif;
+                    font-weight: 800;
+                    font-size: clamp(4.5rem, 10vw, 8rem);
+                    letter-spacing: -2px;
+                    line-height: 0.9;
+                    background: linear-gradient(
+                        135deg,
+                        #000000 0%,
+                        #ffffff 100%
+                    );
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    position: relative;
+                    display: inline-block;
+                    animation: softFloat 6s ease-in-out infinite alternate,
+                               shimmer 3s ease-in-out infinite;
+                    filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.5))
+                            drop-shadow(0 0 80px rgba(255, 255, 255, 0.3));
+                }
 
-.header-subtitle {
-  font-family: "Inter", sans-serif;
-  font-size: clamp(1rem, 2vw, 1.35rem);
-  color: rgba(255, 255, 255, 0.93);
-  font-weight: 400;
-  line-height: 1.8;
-  text-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
-  margin-top: 1.5rem;
-  backdrop-filter: blur(4px) saturate(180%);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 30px;
-  padding: 0.75rem 1.5rem;
-  display: inline-block;
-  animation: fadeSlideUp 1.2s ease-out 0.5s forwards;
-  opacity: 0;
-}
+                /* Add glowing effect behind text */
+                .header-title::before {
+                    content: 'VLoom';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    z-index: -1;
+                    background: linear-gradient(
+                        135deg,
+                        rgba(0,0,0,0.8) 0%,
+                        rgba(255,255,255,0.8) 100%
+                    );
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    filter: blur(20px);
+                    opacity: 0.7;
+                }
 
-/* --- Subtle Floating Animation --- */
-@keyframes softFloat {
-  0% { transform: translateY(0px); }
-  100% { transform: translateY(-10px); }
-}
+                .header-subtitle {
+                    font-family: "Inter", sans-serif;
+                    font-size: clamp(1rem, 2vw, 1.35rem);
+                    color: rgba(255, 255, 255, 0.95);
+                    font-weight: 400;
+                    line-height: 1.8;
+                    text-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+                    margin-top: 2rem;
+                    backdrop-filter: blur(8px) saturate(180%);
+                    background: rgba(255, 255, 255, 0.12);
+                    border-radius: 30px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    padding: 1rem 2rem;
+                    display: inline-block;
+                    animation: fadeSlideUp 1.2s ease-out 0.5s forwards;
+                    opacity: 0;
+                }
 
-@keyframes fadeSlideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
+                /* Shimmer animation for title */
+                @keyframes shimmer {
+                    0%, 100% {
+                        background-position: 0% 50%;
+                    }
+                    50% {
+                        background-position: 100% 50%;
+                    }
+                }
 
+                /* Subtle Floating Animation */
+                @keyframes softFloat {
+                    0% { transform: translateY(0px); }
+                    100% { transform: translateY(-15px); }
+                }
 
+                @keyframes fadeSlideUp {
+                    from { transform: translateY(20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
 
-                /* NOTE: The "VLoom" text is now part of your 3D scene, 
-                  so we don't need to add an <h1> here. 
-                  This header is just a spacer.
-                */
-
-                /* --- Auto-Scrolling Product Cards --- */
+                /* Auto-Scrolling Product Cards */
                 .scroller {
                     max-width: 1200px;
                     margin: 0 auto;
@@ -140,8 +246,7 @@ export default function LandingPage() {
                     -webkit-mask: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
                     mask: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
                     contain: content;
-                    /* ... but this element IS interactive (scrolling) */
-                    pointer-events: auto; 
+                    pointer-events: auto;
                 }
 
                 .scroller-inner {
@@ -168,27 +273,22 @@ export default function LandingPage() {
                     }
                 }
                 
-                /* UPDATED: Product Card (Frosted Glass) */
+                /* Product Card (Frosted Glass) */
                 .product-card {
                     width: var(--card-width);
                     flex-shrink: 0;
                     border-radius: 0.75rem;
-                    
-                    /* NEW: Frosted glass effect */
                     background-color: rgba(255, 255, 255, 0.4);
                     backdrop-filter: blur(10px);
                     -webkit-backdrop-filter: blur(10px);
                     border: 1px solid rgba(255, 255, 255, 0.2);
                     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-
                     transition: all 0.3s ease;
                     contain: content;
                     will-change: transform;
-                    /* ... and this element IS interactive (hover) */
-                    pointer-events: auto; 
+                    pointer-events: auto;
                 }
 
-                /* Text inside the glass card must be dark to be readable */
                 .product-card h3 {
                     color: #1a1a1a;
                 }
@@ -217,24 +317,20 @@ export default function LandingPage() {
                 .star {
                     width: 1rem;
                     height: 1rem;
-                    fill: #f59e0b; /* amber-500 */
+                    fill: #f59e0b;
                 }
-
-                /* --- REMOVED: Dark Mode Toggle Button --- */
                 
-                /* --- Section Wrapper --- */
-                /* UPDATED: Sections are now transparent */
+                /* Section Wrapper */
                 .product-section, .auth-section-new {
                     padding: 4rem 1rem;
-                    background-color: transparent; /* IMPORTANT */
+                    background-color: transparent;
                     position: relative;
-                    overflow: hidden; 
-                    /* ... and this element IS interactive */
+                    overflow: hidden;
                     pointer-events: auto;
                 }
 
                 .product-section h2 {
-                    color: #fff; /* White text for section title */
+                    color: #fff;
                     text-shadow: 0 2px 10px rgba(0,0,0,0.2);
                     font-size: 3rem;
                     font-weight: 700;
@@ -242,8 +338,7 @@ export default function LandingPage() {
                     margin-bottom: 3rem;
                 }
 
-                /* --- Gradient Box for Auth --- */
-                /* This already has the frosted glass style, so it's perfect */
+                /* Gradient Box for Auth */
                 .gradient-auth-box {
                     max-width: 600px;
                     margin: 0 auto;
@@ -257,11 +352,9 @@ export default function LandingPage() {
                     backdrop-filter: blur(12px) saturate(150%);
                     -webkit-backdrop-filter: blur(12px) saturate(150%);
                     border: 1px solid rgba(255, 255, 255, 0.2);
-                    /* ... and this element IS interactive */
-                    pointer-events: auto; 
+                    pointer-events: auto;
                 }
                 
-                /* Gradient glow behind the auth box */
                 .gradient-auth-box::before {
                     content: '';
                     position: absolute;
@@ -284,9 +377,9 @@ export default function LandingPage() {
                 @media (prefers-reduced-motion: reduce) {
                     .scroller-inner { animation: none; }
                     .gradient-auth-box::before { animation: none; }
+                    .header-title { animation: none; }
                 }
 
-                /* Text inside auth box must be dark */
                 .gradient-auth-box .text-gray-800 {
                     color: #1f2937;
                 }
@@ -294,8 +387,7 @@ export default function LandingPage() {
                     color: #4b5563;
                 }
 
-                /* --- Bubble Auth Button Styles --- */
-                /* These are unchanged and will work perfectly */
+                /* Bubble Auth Button Styles */
                 .bubble-btn {
                     position: relative;
                     overflow: hidden;
@@ -340,7 +432,6 @@ export default function LandingPage() {
                                 inset 0 2px 2px rgba(255, 255, 255, 0.8);
                 }
                 
-                /* Ripple Effect */
                 .ripple {
                     position: absolute;
                     border-radius: 50%;
@@ -355,35 +446,50 @@ export default function LandingPage() {
                     to { transform: scale(4); opacity: 0; }
                 }
 
-                /* --- UPDATED: Copyright Bar Footer (Frosted Glass) --- */
+                /* Copyright Bar Footer */
                 footer.copyright-bar {
-                    /* NEW: Frosted glass */
                     background-color: rgba(255, 255, 255, 0.4);
                     backdrop-filter: blur(10px);
                     -webkit-backdrop-filter: blur(10px);
                     border-top: 1px solid rgba(255, 255, 255, 0.2);
                     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
-
-                    /* NEW: Dark text */
                     color: #1a1a1a;
                     padding: 2rem 1rem;
-                    
-                    /* ... and this element IS interactive */
                     pointer-events: auto;
                 }
                 
                 footer.copyright-bar a {
-                    color: #1a1a1a; /* Dark links */
+                    color: #1a1a1a;
                 }
                 footer.copyright-bar a:hover {
                     text-decoration: underline;
                 }
+
+                /* Mobile responsiveness */
+                @media (max-width: 768px) {
+                    .header-title {
+                        font-size: clamp(3rem, 12vw, 5rem);
+                        letter-spacing: -1px;
+                    }
+                    
+                    .header-subtitle {
+                        font-size: clamp(0.9rem, 3vw, 1.1rem);
+                        padding: 0.75rem 1.25rem;
+                    }
+                    
+                    .product-section h2 {
+                        font-size: 2rem;
+                    }
+                    
+                    .bubble-btn {
+                        min-width: 200px;
+                        padding: 0.875rem 2rem;
+                        font-size: 1.1rem;
+                    }
+                }
             `}</style>
 
-      {/* --- REMOVED: Particle background canvas --- */}
-      {/* --- REMOVED: Dark Mode Toggle Button --- */}
-
-      {/* --- LAYER 1: 3D SPLINE BACKGROUND --- */}
+      {/* LAYER 1: 3D SPLINE BACKGROUND */}
       <div className="spline-background">
         <Suspense
           fallback={
@@ -394,19 +500,21 @@ export default function LandingPage() {
                 display: "grid",
                 placeItems: "center",
                 fontFamily: "Inter, sans-serif",
+                color: "#fff",
               }}
             >
               Loading 3D...
             </div>
           }
         >
-          <Spline scene="https://prod.spline.design/y3BjH9DxDt6pKkr5/scene.splinecode" />
+          <Spline scene="https://prod.spline.design/nRErCWsSC7xTj3RV/scene.splinecode" onLoad={onSplineLoad} onMouseMove={handleMouseMove} />
         </Suspense>
       </div>
 
-      {/* --- LAYER 2: PAGE CONTENT --- */}
+
+      {/* LAYER 2: PAGE CONTENT */}
       <div className="page-content">
-        {/* 1. Header (Spacer) */}
+        {/* 1. Header */}
         <header className="landing-header">
           <div className="header-content">
             <h1 className="header-title">VLoom</h1>
@@ -424,489 +532,48 @@ export default function LandingPage() {
           <div className="scroller">
             <div className="scroller-inner" style={{ "--card-count": 14 }}>
               {/* Card Set 1 */}
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/EAB308/FFFFFF?text=Jute+Bag"
-                  alt="Jute Bag"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Handcrafted Jute Bag
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      12 Reviews
-                    </span>
+              {[
+                { img: "https://www.iconickart.com/cdn/shop/files/Let-s-Go-Green-Jute-Bag-3.jpg?v=1709933386&width=416", title: "Handcrafted Jute Bag", reviews: 12, quote: "So durable and stylish! I get compliments everywhere." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShVmbogOOa9iZk0c-ySxU5prxkNcralnnaiA&s", title: "Glass Bangles Set", reviews: 31, quote: "The colors are so vibrant and beautiful. They feel authentic." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3jFkzRoep-rytaDmH1yZqIK-iBkcUSbgamA&s", title: "Hand-Stitched Football", reviews: 8, quote: "This is a proper, high-quality ball. My kids love it." },
+                { img: "https://m.media-amazon.com/images/I/91AhxjgnToL._AC_UF894,1000_QL80_.jpg", title: "Clay Pottery Vase", reviews: 22, quote: "Looks amazing on my mantle. You can feel the quality." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfwTs-xHv0I8jzlBjfENOat21SNNzHszz7mQ&s", title: "Embroidered Shawl", reviews: 19, quote: "A perfect gift for my mother. The detail is incredible." },
+                { img: "https://m.media-amazon.com/images/I/71RjgSwW0hL._AC_UF1000,1000_QL80_.jpg", title: "Carved Wooden Box", reviews: 4, quote: "Smells like real wood, high quality hinge." },
+                { img: "https://www.fabvoguestudio.com/cdn/shop/files/pr-pco-0-ta08633p18-108-white-floral-printed-pure-cotton-fabric-material-1.jpg?v=1756980089", title: "Printed Cotton Fabric", reviews: 41, quote: "Used this to make curtains. The print is gorgeous." },
+              ].concat([
+                { img: "https://www.iconickart.com/cdn/shop/files/Let-s-Go-Green-Jute-Bag-3.jpg?v=1709933386&width=416", title: "Handcrafted Jute Bag", reviews: 12, quote: "So durable and stylish! I get compliments everywhere." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShVmbogOOa9iZk0c-ySxU5prxkNcralnnaiA&s", title: "Glass Bangles Set", reviews: 31, quote: "The colors are so vibrant and beautiful. They feel authentic." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3jFkzRoep-rytaDmH1yZqIK-iBkcUSbgamA&s", title: "Hand-Stitched Football", reviews: 8, quote: "This is a proper, high-quality ball. My kids love it." },
+                { img: "https://m.media-amazon.com/images/I/91AhxjgnToL._AC_UF894,1000_QL80_.jpg", title: "Clay Pottery Vase", reviews: 22, quote: "Looks amazing on my mantle. You can feel the quality." },
+                { img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfwTs-xHv0I8jzlBjfENOat21SNNzHszz7mQ&s", title: "Embroidered Shawl", reviews: 19, quote: "A perfect gift for my mother. The detail is incredible." },
+                { img: "https://m.media-amazon.com/images/I/71RjgSwW0hL._AC_UF1000,1000_QL80_.jpg", title: "Carved Wooden Box", reviews: 4, quote: "Smells like real wood, high quality hinge." },
+                { img: "https://www.fabvoguestudio.com/cdn/shop/files/pr-pco-0-ta08633p18-108-white-floral-printed-pure-cotton-fabric-material-1.jpg?v=1756980089", title: "Printed Cotton Fabric", reviews: 41, quote: "Used this to make curtains. The print is gorgeous." },
+              ]).map((card, idx) => (
+                <div key={idx} className="product-card">
+                  <img
+                    src={card.img}
+                    alt={card.title}
+                    className="w-full h-48 object-cover rounded-t-lg"
+                  />
+                  <div className="p-5">
+                    <h3 className="text-lg font-semibold">{card.title}</h3>
+                    <div className="flex items-center my-2">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="star" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
+                        </svg>
+                      ))}
+                      <span className="ml-2 text-sm text-gray-500">{card.reviews} Reviews</span>
+                    </div>
+                    <p className="text-sm text-gray-600 italic">"{card.quote}"</p>
                   </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "So durable and stylish! I get compliments everywhere."
-                  </p>
                 </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/34D399/FFFFFF?text=Bangles"
-                  alt="Bangles"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Glass Bangles Set</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      31 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "The colors are so vibrant and beautiful. They feel
-                    authentic."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/F87171/FFFFFF?text=Football"
-                  alt="Football"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Hand-Stitched Football
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      8 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "This is a proper, high-quality ball. My kids love it."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/60A5FA/FFFFFF?text=Pottery"
-                  alt="Pottery"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Clay Pottery Vase</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      22 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Looks amazing on my mantle. You can feel the quality."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/A78BFA/FFFFFF?text=Shawl"
-                  alt="Shawl"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Embroidered Shawl</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      19 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "A perfect gift for my mother. The detail is incredible."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/F472B6/FFFFFF?text=Woodwork"
-                  alt="Woodwork"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Carved Wooden Box</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      4 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Smells like real wood, high quality hinge."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/22C55E/FFFFFF?text=Fabric"
-                  alt="Fabric"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Printed Cotton Fabric
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      41 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Used this to make curtains. The print is gorgeous."
-                  </p>
-                </div>
-              </div>
-
-              {/* Card Set 2 (Duplicates) */}
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/EAB308/FFFFFF?text=Jute+Bag"
-                  alt="Jute Bag"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Handcrafted Jute Bag
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      12 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "So durable and stylish! I get compliments everywhere."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/34D399/FFFFFF?text=Bangles"
-                  alt="Bangles"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Glass Bangles Set</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      31 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "The colors are so vibrant and beautiful. They feel
-                    authentic."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/F87171/FFFFFF?text=Football"
-                  alt="Football"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Hand-Stitched Football
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      8 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "This is a proper, high-quality ball. My kids love it."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/60A5FA/FFFFFF?text=Pottery"
-                  alt="Pottery"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Clay Pottery Vase</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      22 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Looks amazing on my mantle. You can feel the quality."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/A78BFA/FFFFFF?text=Shawl"
-                  alt="Shawl"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Embroidered Shawl</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      19 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "A perfect gift for my mother. The detail is incredible."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/F472B6/FFFFFF?text=Woodwork"
-                  alt="Woodwork"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">Carved Wooden Box</h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      4 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Smells like real wood, high quality hinge."
-                  </p>
-                </div>
-              </div>
-              <div className="product-card">
-                <img
-                  src="https://placehold.co/400x300/22C55E/FFFFFF?text=Fabric"
-                  alt="Fabric"
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold">
-                    Printed Cotton Fabric
-                  </h3>
-                  <div className="flex items-center my-2">
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <svg className="star" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.09 2.68 0.98-5.68-4.12-4.01 5.7-0.83 2.53-5.16 2.53 5.16 5.7 0.83-4.12 4.01 0.98 5.68z"></path>
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-500">
-                      41 Reviews
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 italic">
-                    "Used this to make curtains. The print is gorgeous."
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* 3. Auth Section (NEW GRADIENT BOX) */}
+        {/* 3. Auth Section */}
         <section className="auth-section-new">
           <div className="gradient-auth-box">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6">
@@ -919,7 +586,7 @@ export default function LandingPage() {
               <button
                 onClick={(e) => {
                   createRipple(e);
-                  setTimeout(() => navigate("/register"), 300); // Wait for ripple
+                  setTimeout(() => navigate("/register"), 300);
                 }}
                 className="bubble-btn btn-bubble-primary"
               >
@@ -928,7 +595,7 @@ export default function LandingPage() {
               <button
                 onClick={(e) => {
                   createRipple(e);
-                  setTimeout(() => navigate("/login"), 300); // Wait for ripple
+                  setTimeout(() => navigate("/login"), 300);
                 }}
                 className="bubble-btn btn-bubble-secondary"
               >
@@ -938,30 +605,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 4. Footer (NEW COPYRIGHT BAR) */}
+        {/* 4. Footer */}
         <footer className="copyright-bar">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-4">
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a href="#" className="">
-                About Us
-              </a>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a href="#" className="">
-                Contact
-              </a>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a href="#" className="">
-                FAQ
-              </a>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a href="#" className="">
-                Artisan Portal
-              </a>
+              <a href="#" className="">About Us</a>
+              <a href="#" className="">Contact</a>
+              <a href="#" className="">FAQ</a>
+              <a href="#" className="">Artisan Portal</a>
             </div>
             <p className="text-sm opacity-70">
-              &copy; 2024 VLoom. All rights reserved. Connecting artisans, one
-              craft at a time.
+              &copy; 2024 VLoom. All rights reserved. Connecting artisans, one craft at a time.
             </p>
           </div>
         </footer>
