@@ -109,6 +109,7 @@ export default function LandingPage() {
 
                 html, body {
                     overflow-x: hidden;
+                    overflow-y: auto;
                     width: 100%;
                     position: relative;
                 }
@@ -125,9 +126,9 @@ export default function LandingPage() {
                     overflow: hidden;
                 }
 
-                /* Prevent Spline canvas zoom */
+                /* Allow scrolling on mobile while preventing zoom */
                 .spline-background canvas {
-                    touch-action: none !important;
+                    touch-action: pan-y !important;
                 }
 
                 /* Main Content Container (Layer 2) */
@@ -468,22 +469,51 @@ export default function LandingPage() {
                 /* Mobile responsiveness */
                 @media (max-width: 768px) {
                     .header-title {
-                        font-size: clamp(3rem, 12vw, 5rem);
-                        letter-spacing: -1px;
+                        font-size: clamp(4rem, 15vw, 6rem);
+                        letter-spacing: -2px;
                     }
-                    
+
                     .header-subtitle {
-                        font-size: clamp(0.9rem, 3vw, 1.1rem);
-                        padding: 0.75rem 1.25rem;
+                        font-size: clamp(1rem, 4vw, 1.3rem);
+                        padding: 1rem 1.5rem;
                     }
-                    
+
+                    .product-section, .auth-section-new {
+                        padding: 2rem 1rem;
+                    }
+
+                    .product-section h2 {
+                        font-size: 2.5rem;
+                        margin-bottom: 2rem;
+                    }
+
+                    .bubble-btn {
+                        min-width: 220px;
+                        padding: 1rem 2.5rem;
+                        font-size: 1.2rem;
+                    }
+
+                    footer.copyright-bar {
+                        padding: 1.5rem 1rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .header-title {
+                        font-size: clamp(4.5rem, 18vw, 7rem);
+                    }
+
+                    .header-subtitle {
+                        font-size: clamp(1.1rem, 5vw, 1.4rem);
+                    }
+
                     .product-section h2 {
                         font-size: 2rem;
                     }
-                    
+
                     .bubble-btn {
                         min-width: 200px;
-                        padding: 0.875rem 2rem;
+                        padding: 0.9rem 2rem;
                         font-size: 1.1rem;
                     }
                 }
@@ -609,9 +639,13 @@ export default function LandingPage() {
         <footer className="copyright-bar">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-4">
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
               <a href="#" className="">About Us</a>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
               <a href="#" className="">Contact</a>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
               <a href="#" className="">FAQ</a>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
               <a href="#" className="">Artisan Portal</a>
             </div>
             <p className="text-sm opacity-70">
