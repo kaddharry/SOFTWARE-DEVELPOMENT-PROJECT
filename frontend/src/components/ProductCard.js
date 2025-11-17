@@ -167,7 +167,7 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 /* Mobile-specific styles */
                 @media (max-width: 768px) {
                     .product-card-wrapper {
-                        height: 180px;
+                        height: 220px;
                     }
                     .product-card-image-container {
                         height: 70%;
@@ -175,32 +175,32 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                     }
                     .product-card-details {
                         height: 30%;
-                        padding: 4px;
+                        padding: 6px;
                         display: flex;
                         flex-direction: column;
                         justify-content: space-between;
                     }
                     .product-card-name {
-                        font-size: 0.8rem;
+                        font-size: 0.9rem;
                         margin: 0;
                     }
                     .product-card-seller {
-                        font-size: 0.7rem;
+                        font-size: 0.8rem;
                         margin: 0;
                     }
                     .product-card-price {
-                        font-size: 0.9rem;
+                        font-size: 1rem;
                         margin: 0;
                     }
                     .product-card-actions {
                         display: flex;
-                        gap: 2px;
-                        margin-top: 2px;
+                        gap: 4px;
+                        margin-top: 4px;
                     }
                     .product-card-btn {
                         flex: 1;
-                        padding: 4px;
-                        font-size: 0.7rem;
+                        padding: 6px;
+                        font-size: 0.8rem;
                     }
                 }
 
