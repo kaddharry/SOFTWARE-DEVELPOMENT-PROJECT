@@ -127,11 +127,11 @@
     }
 
     .cart-bubble {
-        bottom: 160px; /* Above bottom nav */
+        bottom: 200px; /* Above bottom nav */
     }
 
     .ai-gift-bubble {
-        bottom: 220px; /* Above cart button */
+        bottom: 260px; /* Above cart button */
     }
 
     /* Blur effect below bottom nav */
