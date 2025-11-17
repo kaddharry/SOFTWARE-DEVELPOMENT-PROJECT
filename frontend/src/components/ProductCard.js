@@ -157,6 +157,37 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 }
                 .product-card-btn.add { background: linear-gradient(45deg, #0D6EFD, #3da9fc); }
                 .product-card-btn.buy { background: linear-gradient(45deg, #FF9900, #FD7E14); }
+
+                /* Mobile-specific styles for Blinkit-like layout */
+                @media (max-width: 768px) {
+                    .product-card-actions {
+                        position: absolute;
+                        bottom: 8px;
+                        right: 8px;
+                        gap: 4px;
+                    }
+                    .product-card-btn {
+                        width: 32px;
+                        height: 32px;
+                        padding: 0;
+                        border-radius: 50%;
+                        font-size: 0.8rem;
+                    }
+                    .product-card-btn.add {
+                        background: #fff;
+                        color: #0D6EFD;
+                        border: 1px solid #0D6EFD;
+                    }
+                    .product-card-btn.buy {
+                        display: none; /* Hide buy button on mobile for simplicity */
+                    }
+                    .product-card-image-container {
+                        position: relative;
+                    }
+                    .product-card-actions {
+                        z-index: 2;
+                    }
+                }
             `}</style>
         </div>
     );
