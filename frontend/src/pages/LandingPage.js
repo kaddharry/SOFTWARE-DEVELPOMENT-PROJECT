@@ -20,7 +20,7 @@ export default function LandingPage() {
         e.preventDefault();
       }
     };
-
+//retry file
     // Prevent ctrl/cmd + scroll zoom
     const preventScrollZoom = (e) => {
       if (e.ctrlKey || e.metaKey) {
