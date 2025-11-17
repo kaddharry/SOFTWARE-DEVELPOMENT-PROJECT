@@ -191,6 +191,7 @@ function Home({ addToCart }) {
                     <ShoppingCart size={20} />
                     <span>Your Cart</span>
                 </button>
+                <div className="bottom-blur"></div>
             </div>
         </>
     );

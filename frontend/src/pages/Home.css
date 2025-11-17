@@ -59,7 +59,11 @@
 @media (max-width: 768px) {
     .card-container {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 15px;
+        gap: 10px;
+    }
+
+    .product-card-image-container {
+        padding-top: 80%; /* Make cards shorter for more visibility */
     }
 
     .product-card-details {
@@ -86,7 +90,7 @@
     }
 
     .skeleton-card .skeleton-image {
-        height: 160px;
+        height: 128px; /* Match new aspect ratio */
     }
 
     .skeleton-text-container {
@@ -99,7 +103,7 @@
     }
 
     .home-container {
-        padding: 20px 10px 100px;
+        padding: 20px 10px 60px; /* Reduce bottom padding to show more content */
     }
 
     .search-bar-wrapper {
@@ -119,11 +123,24 @@
     }
 
     .cart-bubble {
-        bottom: 30px;
+        bottom: 120px; /* Above bottom nav */
     }
 
     .ai-gift-bubble {
-        bottom: 90px;
+        bottom: 180px; /* Above cart button */
+    }
+
+    /* Blur effect below bottom nav */
+    .bottom-blur {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 50;
+        pointer-events: none;
     }
 }
 
