@@ -1,17 +1,9 @@
 import React from 'react';
-import { ShoppingCart, Zap } from 'lucide-react';
 
 // This is our single, reusable Product Card component.
 // It can show a customer view (with buttons) or a seller view (with stock).
-function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) {
+function ProductCard({ product, onClick, isSellerView }) {
     const isOutOfStock = (product.sellerId && product.sellerId.isShopOpen === false) || product.quantity <= 0;
-
-    const handleActionClick = (e, action) => {
-        e.stopPropagation(); // Prevents the card's main onClick from firing
-        if (!isOutOfStock && action) {
-            action(product);
-        }
-    };
 
     return (
         <div className={`product-card-wrapper ${isOutOfStock ? 'out-of-stock' : ''}`} onClick={isOutOfStock ? null : () => onClick(product)}>
@@ -148,30 +140,29 @@ function ProductCard({ product, onClick, onAddToCart, onBuyNow, isSellerView }) 
                 /* Mobile-specific styles */
                 @media (max-width: 768px) {
                     .product-card-wrapper {
-                        height: 200px;
+                        height: auto; /* Allow natural height */
+                        min-height: 240px; /* Ensure a reasonable minimum size */
                     }
                     .product-card-image-container {
-                        height: 70%;
-                        padding-top: 0;
+                        height: auto;
+                        padding-top: 100%; /* Maintain square aspect ratio */
                     }
                     .product-card-details {
-                        height: 30%;
-                        padding: 6px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: flex-start;
+                        height: auto;
+                        padding: 10px;
+                        flex-grow: 1;
                     }
                     .product-card-name {
-                        font-size: 0.9rem;
-                        margin: 0 0 2px;
+                        font-size: 0.95rem;
+                        margin-bottom: 4px;
+                        line-height: 1.3;
                     }
                     .product-card-seller {
                         font-size: 0.8rem;
-                        margin: 0 0 2px;
+                        margin-bottom: 6px;
                     }
                     .product-card-price {
-                        font-size: 1rem;
-                        margin: 0;
+                        font-size: 1.1rem;
                     }
                 }
 
