@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 // Fixed ESLint warnings
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Type, Image as ImageIcon, MessageSquare, Tag, Hash, CheckCircle, Mic, Square, Loader, Sparkles, Globe, AlertCircle, Eye } from 'lucide-react';
+import { ArrowLeft, Type, Image as ImageIcon, MessageSquare, Tag, Hash, CheckCircle, Mic, Square, Loader, Sparkles, Globe, AlertCircle, Eye, Grid } from 'lucide-react';
 
 const ProgressBar = ({ step, totalSteps }) => {
     const progress = Math.min(100, Math.max(0, ((step - 1) / (totalSteps - 1)) * 100));
@@ -25,6 +25,17 @@ const LANGUAGES = [
     { code: 'ml', name: 'Malayalam (മലയാളം)' },
 ];
 
+const CATEGORIES = [
+    "Home Decor",
+    "Jewelry",
+    "Art",
+    "Clothing",
+    "Toys",
+    "Accessories",
+    "Kitchen",
+    "General"
+];
+
 function AddProduct() {
     const [step, setStep] = useState(0); // 0=Mode, 0.2=Lang, 0.5=Record
     const [formData, setFormData] = useState({
@@ -32,6 +43,7 @@ function AddProduct() {
         description: '',
         price: '',
         quantity: '',
+        category: 'General',
     });
     const [imageFile, setImageFile] = useState(null);
     const [previewImage, setPreviewImage] = useState('');
@@ -50,7 +62,7 @@ function AddProduct() {
     const chunksRef = useRef([]);
 
     const navigate = useNavigate();
-    const totalSteps = 6; // Name, Image, Desc, Price, Qty, Preview
+    const totalSteps = 7; // Name, Image, Desc, Category, Price, Qty, Preview
 
     useEffect(() => {
         const savedData = localStorage.getItem("userData");
@@ -336,12 +348,36 @@ function AddProduct() {
             case 4:
                 return (
                     <div className="step-content">
+                        <Grid size={48} className="header-icon" />
+                        <h2>Select a Category</h2>
+                        <div className="category-grid">
+                            {CATEGORIES.filter(c => c !== 'General').map(cat => (
+                                <div 
+                                    key={cat} 
+                                    className={`category-card ${formData.category === cat ? 'selected' : ''}`}
+                                    onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
+                                >
+                                    {cat}
+                                </div>
+                            ))}
+                            <div 
+                                className={`category-card ${formData.category === 'General' ? 'selected' : ''}`}
+                                onClick={() => setFormData(prev => ({ ...prev, category: 'General' }))}
+                            >
+                                General
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 5:
+                return (
+                    <div className="step-content">
                         <Tag size={48} className="header-icon" />
                         <h2>Set a price (in ₹)</h2>
                         <input name="price" type="number" value={formData.price || ''} onChange={handleInputChange} placeholder="e.g., 1200" />
                     </div>
                 );
-            case 5:
+            case 6:
                 return (
                     <div className="step-content">
                         <Hash size={48} className="header-icon" />
@@ -349,7 +385,7 @@ function AddProduct() {
                         <input name="quantity" type="number" value={formData.quantity || ''} onChange={handleInputChange} placeholder="e.g., 10" />
                     </div>
                 );
-            case 6: // Preview Step
+            case 7: // Preview Step
                 return (
                     <div className="step-content preview-step">
                         <Eye size={48} className="header-icon" />
@@ -360,13 +396,14 @@ function AddProduct() {
                                 <h3>{formData.name}</h3>
                                 <p className="preview-price">₹{formData.price}</p>
                                 <p className="preview-desc">{formData.description}</p>
+                                <p className="preview-stock">Category: {formData.category}</p>
                                 <p className="preview-stock">Stock: {formData.quantity}</p>
                             </div>
                         </div>
                     </div>
                 );
 
-            case 7: // Success screen
+            case 8: // Success screen
                 return (
                     <div className="success-container">
                         <CheckCircle size={60} className="success-icon" />
@@ -384,8 +421,9 @@ function AddProduct() {
         if (step === 1) return formData.name.trim() !== '';
         if (step === 2) return imageFile !== null;
         if (step === 3) return formData.description.trim() !== '';
-        if (step === 4) return formData.price !== '';
-        if (step === 5) return formData.quantity !== '';
+        if (step === 4) return formData.category !== '';
+        if (step === 5) return formData.price !== '';
+        if (step === 6) return formData.quantity !== '';
         return true;
     };
 
@@ -509,6 +547,12 @@ function AddProduct() {
 
                 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(51, 51, 51, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(51, 51, 51, 0); } 100% { box-shadow: 0 0 0 0 rgba(51, 51, 51, 0); } }
                 @keyframes spin { 100% { transform: rotate(360deg); } }
+
+                /* Category Grid Styles */
+                .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+                .category-card { background: #f8f9fa; border: 2px solid transparent; border-radius: 12px; padding: 15px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #555; }
+                .category-card:hover { background: #e9ecef; }
+                .category-card.selected { border-color: #007BFF; background: #eef5ff; color: #007BFF; }
             `}</style>
         </>
     );

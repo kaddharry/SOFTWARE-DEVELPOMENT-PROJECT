@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     quantity: { type: Number, required: true },
     imageUrl: { type: String, required: true },
+    category: { type: String, required: true, default: 'General' },
     // This is the crucial link back to the seller
     sellerId: { 
         type: mongoose.Schema.Types.ObjectId, 

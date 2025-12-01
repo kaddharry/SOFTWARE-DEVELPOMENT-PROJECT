@@ -1,18 +1,37 @@
-.seller-orders-container { 
-    padding: 25px; 
-    background-color: #f4f7f9; 
-    font-family: 'Inter', sans-serif; 
+/* --- Import Google Font --- */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+
+.seller-orders-container {
+    padding: 25px;
+    background: linear-gradient(-45deg, #f5f7ff, #fff5f8, #f0f9ff, #fef5ff);
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+    font-family: 'Outfit', 'Inter', sans-serif;
     min-height: 100vh;
     max-width: 1000px;
     margin: 0 auto;
 }
 
-.seller-orders-header { 
-    display: flex; 
-    align-items: center; 
-    gap: 15px; 
-    color: #1a3b5d; 
-    margin-bottom: 20px; 
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.seller-orders-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #1a3b5d;
+    margin-bottom: 20px;
 }
 
 .seller-orders-header h1 {
@@ -20,21 +39,22 @@
     font-weight: 700;
 }
 
-.loading-message, .error-message { 
-    text-align: center; 
-    font-size: 1.2rem; 
-    color: #555; 
-    padding: 40px; 
+.loading-message,
+.error-message {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #555;
+    padding: 40px;
 }
 
-.error-message { 
-    color: #d93025; 
+.error-message {
+    color: #d93025;
 }
 
-.no-orders-message { 
-    text-align: center; 
-    padding: 50px; 
-    background: white; 
+.no-orders-message {
+    text-align: center;
+    padding: 50px;
+    background: white;
     border-radius: 12px;
     box-shadow: 0 8px 25px rgba(26, 59, 93, 0.08);
 }
@@ -43,58 +63,58 @@
     color: #1a3b5d;
 }
 
-.no-orders-message-small { 
-    text-align: center; 
-    padding: 20px; 
-    color: #777; 
+.no-orders-message-small {
+    text-align: center;
+    padding: 20px;
+    color: #777;
 }
 
-.search-bar-wrapper { 
-    position: relative; 
-    margin-bottom: 30px; 
+.search-bar-wrapper {
+    position: relative;
+    margin-bottom: 30px;
 }
 
-.search-input { 
-    width: 100%; 
-    padding: 14px 20px 14px 50px; 
-    border-radius: 10px; 
-    border: 1px solid #ddd; 
-    font-size: 1rem; 
+.search-input {
+    width: 100%;
+    padding: 14px 20px 14px 50px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 1rem;
     box-sizing: border-box;
 }
 
-.search-icon { 
-    position: absolute; 
-    left: 15px; 
-    top: 50%; 
-    transform: translateY(-50%); 
-    color: #aaa; 
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
 }
 
-.section-title { 
-    color: #1a3b5d; 
-    margin-top: 30px; 
-    margin-bottom: 15px; 
-    border-bottom: 2px solid #ddd; 
-    padding-bottom: 10px; 
+.section-title {
+    color: #1a3b5d;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
     font-size: 1.5rem;
 }
 
-.orders-list { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 20px; 
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.order-item-card { 
-    background: white; 
-    border-radius: 12px; 
-    padding: 20px; 
+.order-item-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
     box-shadow: 0 8px 25px rgba(26, 59, 93, 0.08);
 }
 
-.past-order { 
-    opacity: 0.8; 
+.past-order {
+    opacity: 0.8;
     background-color: #f8f9fa;
 }
 
@@ -105,33 +125,45 @@
     margin-bottom: 15px;
 }
 
-.order-card-main-info p { 
-    margin: 0; 
+.order-card-main-info p {
+    margin: 0;
     color: #555;
 }
+
 .order-card-main-info p strong {
     color: #1a3b5d;
 }
 
-.order-status { 
-    display: inline-block; 
-    padding: 5px 12px; 
-    border-radius: 20px; 
-    font-size: 0.8rem; 
-    font-weight: bold; 
-    color: white; 
+.order-status {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
     text-align: center;
 }
 
-.status-shipped { background-color: #fd7e14; }
-.status-delivered { background-color: #28a745; }
-.status-pending { background-color: #6c757d; }
-.status-confirmed { background-color: #007BFF; }
+.status-shipped {
+    background-color: #fd7e14;
+}
 
-.order-item-card hr { 
-    border: 0; 
-    border-top: 1px solid #f0f0f0; 
-    margin: 15px 0; 
+.status-delivered {
+    background-color: #28a745;
+}
+
+.status-pending {
+    background-color: #6c757d;
+}
+
+.status-confirmed {
+    background-color: #007BFF;
+}
+
+.order-item-card hr {
+    border: 0;
+    border-top: 1px solid #f0f0f0;
+    margin: 15px 0;
 }
 
 .order-products-list h4 {
@@ -140,25 +172,26 @@
     color: #1a3b5d;
 }
 
-.product-line-item { 
-    display: flex; 
-    align-items: center; 
-    gap: 15px; 
-    margin-bottom: 10px; 
+.product-line-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid #f8f9fa;
 }
+
 .product-line-item:last-child {
     margin-bottom: 0;
     padding-bottom: 0;
     border-bottom: none;
 }
 
-.product-line-item img { 
-    width: 50px; 
-    height: 50px; 
-    border-radius: 8px; 
-    object-fit: cover; 
+.product-line-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    object-fit: cover;
 }
 
 .product-info {
@@ -168,48 +201,51 @@
 .product-info span {
     display: block;
 }
+
 .product-qty {
     font-size: 0.9rem;
     color: #6c757d;
 }
 
-.product-line-item strong { 
-    margin-left: auto; 
+.product-line-item strong {
+    margin-left: auto;
     font-size: 1.1rem;
     color: #1a3b5d;
 }
 
-.order-actions { 
-    display: flex; 
-    justify-content: flex-end; 
-    gap: 10px; 
+.order-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
     margin-top: 15px;
 }
 
-.order-actions button { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-    border: none; 
-    padding: 10px 20px; 
-    border-radius: 8px; 
-    font-weight: bold; 
-    cursor: pointer; 
+.order-actions button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.confirm-btn { 
-    background-color: #28a745; 
-    color: white; 
+.confirm-btn {
+    background-color: #28a745;
+    color: white;
 }
+
 .confirm-btn:hover {
     background-color: #218838;
 }
 
-.ship-btn { 
-    background-color: #007BFF; 
-    color: white; 
+.ship-btn {
+    background-color: #007BFF;
+    color: white;
 }
+
 .ship-btn:hover {
     background-color: #0056b3;
 }
@@ -217,15 +253,28 @@
 /* --- Add these new rules to the END of your SellerOrders.css file --- */
 
 /* New Status Tag Colors */
-.status-packed { background-color: #17a2b8; } /* Teal for Packed */
-.status-rejected { background-color: #dc3545; } /* Red for Rejected */
-.status-cancelled { background-color: #6c757d; } /* Grey for Cancelled */
+.status-packed {
+    background-color: #17a2b8;
+}
+
+/* Teal for Packed */
+.status-rejected {
+    background-color: #dc3545;
+}
+
+/* Red for Rejected */
+.status-cancelled {
+    background-color: #6c757d;
+}
+
+/* Grey for Cancelled */
 
 /* New Button Styles */
 .reject-btn {
     background-color: #dc3545;
     color: white;
 }
+
 .reject-btn:hover {
     background-color: #c82333;
 }
@@ -234,6 +283,7 @@
     background-color: #17a2b8;
     color: white;
 }
+
 .packed-btn:hover {
     background-color: #138496;
 }
@@ -271,4 +321,3 @@
     font-weight: 600;
     margin: 5px 0;
 }
-

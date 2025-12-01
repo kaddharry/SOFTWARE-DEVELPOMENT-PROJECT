@@ -132,7 +132,7 @@ const OrderDetailModal = ({ order, onClose, onReportIssue }) => {
                         <span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span>
                         <span>Delivery Fee:</span><span>FREE</span>
                         <hr/>
-                        <strong><span>Total Paid:</span><span>₹{order.totalAmount.toFixed(2)}</span></strong>
+                        <strong><span>Total Paid:</span><span>₹{subtotal.toFixed(2)}</span></strong>
                         <span>Method:</span><span>{order.paymentMethod}</span>
                     </div>
                 </div>
@@ -291,7 +291,7 @@ function Orders() {
                                         </div>
                                         <div className="order-summary-info">
                                             <p>{order.products.reduce((sum, p) => sum + p.quantity, 0)} item(s)</p>
-                                            <strong>Total: ₹{order.totalAmount.toFixed(2)}</strong>
+                                            <strong>Total: ₹{order.products.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}</strong>
                                         </div>
                                     </div>
                                     {/* --- NEW: Button to report issue --- */}

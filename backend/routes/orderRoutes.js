@@ -25,7 +25,7 @@ router.post("/create", async (req, res) => {
             const sellerProducts = ordersBySeller[sellerId];
             
             // Calculate the total amount for this specific seller's order
-            const sellerTotalAmount = sellerProducts.reduce((sum, product) => sum + product.price, 0);
+            const sellerTotalAmount = sellerProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
 
             const newOrder = new Order({
                 buyerId,

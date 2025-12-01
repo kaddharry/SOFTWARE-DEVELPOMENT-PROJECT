@@ -72,6 +72,21 @@ function Home({ addToCart }) {
     const [quantityProduct, setQuantityProduct] = useState(null);
     const [quantityAction, setQuantityAction] = useState(null);
 
+    // --- NEW STATE for Category Filtering ---
+    const [selectedCategory, setSelectedCategory] = useState("All");
+
+    const CATEGORIES = [
+        "All",
+        "Home Decor",
+        "Jewelry",
+        "Art",
+        "Clothing",
+        "Toys",
+        "Accessories",
+        "Kitchen",
+        "General"
+    ];
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -121,9 +136,11 @@ function Home({ addToCart }) {
         setSelectedProduct(product);
     };
 
-    const filteredProducts = products.filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredProducts = products.filter((product) => {
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <>
@@ -154,10 +171,23 @@ function Home({ addToCart }) {
                     <input 
                         type="text" 
                         className="search-input" 
-                        placeholder="Search for handmade treasures..." 
+                        placeholder="    Search for handmade treasures..." 
                         value={searchQuery} 
                         onChange={(e) => setSearchQuery(e.target.value)} 
                     />
+                </div>
+
+                {/* --- Horizontal Category Filter --- */}
+                <div className="category-filter-container">
+                    {CATEGORIES.map((cat) => (
+                        <button 
+                            key={cat} 
+                            className={`category-bubble ${selectedCategory === cat ? 'active' : ''}`}
+                            onClick={() => setSelectedCategory(cat)}
+                        >
+                            {cat}
+                        </button>
+                    ))}
                 </div>
 
                 {error && <p className="error-message">{error}</p>}
