@@ -1,7 +1,8 @@
 import React, { Suspense, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Spline from "@splinetool/react-spline";
-import { spline_landing_page } from "../assets/spline_link.js";
+
+const spline_landing_page = process.env.REACT_APP_SPLINE_LANDING_PAGE;
 
 export default function LandingPage() {
   const navigate = useNavigate();

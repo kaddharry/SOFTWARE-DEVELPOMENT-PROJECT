@@ -99,7 +99,7 @@ router.put("/update-status/:orderId", async (req, res) => {
     try {
         const { status } = req.body;
         
-        // Find the order first to check previous status if needed (optional optimization)
+        // Find the order first to check previous status
         const order = await Order.findById(req.params.orderId);
         if (!order) {
             return res.status(404).json({ message: "Order not found." });
@@ -108,9 +108,35 @@ router.put("/update-status/:orderId", async (req, res) => {
         // Only deduct stock if the status is changing to 'Confirmed' for the first time
         // We assume 'Pending' -> 'Confirmed' is the flow.
         if (status === 'Confirmed' && order.status !== 'Confirmed') {
-             for (const product of order.products) {
+            // Validate stock availability before confirming
+            for (const product of order.products) {
+                const productDoc = await Product.findById(product.productId);
+                if (!productDoc) {
+                    return res.status(404).json({ 
+                        message: `Product "${product.name}" not found.` 
+                    });
+                }
+                if (productDoc.quantity < product.quantity) {
+                    return res.status(400).json({ 
+                        message: `Insufficient stock for "${product.name}". Available: ${productDoc.quantity}, Requested: ${product.quantity}` 
+                    });
+                }
+            }
+
+            // All validations passed, now deduct stock
+            for (const product of order.products) {
                 await Product.findByIdAndUpdate(product.productId, { 
                     $inc: { quantity: -product.quantity } 
+                });
+            }
+        }
+
+        // Restore stock if order is cancelled after being confirmed
+        // This handles cases where seller confirms then later cancels
+        if (status === 'Cancelled' && order.status === 'Confirmed') {
+            for (const product of order.products) {
+                await Product.findByIdAndUpdate(product.productId, { 
+                    $inc: { quantity: product.quantity } 
                 });
             }
         }

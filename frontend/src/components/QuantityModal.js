@@ -42,6 +42,7 @@ function QuantityModal({ product, action, onClose, onConfirm }) {
                     <div className="quantity-modal-product-info">
                         <h3 className="quantity-modal-title">{product.name}</h3>
                         <p className="quantity-modal-price">₹{product.price}</p>
+                        <p className="quantity-modal-stock">Available: {product.quantity > 0 ? product.quantity : 0} units</p>
                     </div>
                 </div>
 

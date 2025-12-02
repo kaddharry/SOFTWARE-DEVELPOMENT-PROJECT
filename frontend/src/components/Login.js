@@ -2,7 +2,8 @@ import React, { useState, Suspense } from "react";
 import { Link } from "react-router-dom";
 // This import will now work because you ran "npm install"
 import Spline from '@splinetool/react-spline';
-import { spline_login_page } from "../assets/spline_link.js";
+
+const spline_login_page = process.env.REACT_APP_SPLINE_LOGIN_PAGE;
 
 // A simple SVG icon for the login page header
 const LoginIcon = () => (

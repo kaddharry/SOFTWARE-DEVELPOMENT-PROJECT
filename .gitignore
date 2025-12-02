@@ -1,7 +1,6 @@
 # Ignore environment files
 .env
 artisan-direct/.env
-artisan-direct/src/.assets
 backend/.env
 # backend/config/dotenv.js
 

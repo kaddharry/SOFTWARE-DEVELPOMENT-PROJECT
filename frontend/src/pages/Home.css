@@ -848,6 +848,14 @@
     margin: 0;
 }
 
+.quantity-modal-stock {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0 0;
+    font-weight: 500;
+}
+
+
 .quantity-selector-container {
     margin-bottom: 30px;
 }

@@ -351,7 +351,7 @@ function MyProducts() {
                                     key={product._id} 
                                     product={product}
                                     onClick={() => setSelectedProduct(product)}
-                                    isSellerView={false}
+                                    isSellerView={true}
                                 />
                             ))}
                         </div>
