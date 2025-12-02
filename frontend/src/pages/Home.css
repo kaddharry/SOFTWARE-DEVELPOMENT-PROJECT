@@ -761,17 +761,25 @@
     }
 
     .cart-bubble {
-        bottom: 20px;
-        right: 15px;
-        padding: 14px 24px;
-        font-size: 1rem;
+        bottom: 100px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .ai-gift-bubble {
-        bottom: 90px;
-        right: 15px;
-        padding: 14px 24px;
-        font-size: 1rem;
+        bottom: 175px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .modal-overlay {

@@ -1,6 +1,8 @@
 import express from "express";
 import Order from "../models/Order.js";
 
+import Product from "../models/Product.js";
+
 const router = express.Router();
 
 // **THE FIX**: This route is now much smarter.
@@ -96,15 +98,27 @@ router.get("/pending-count/:sellerId", async (req, res) => {
 router.put("/update-status/:orderId", async (req, res) => {
     try {
         const { status } = req.body;
-        const order = await Order.findByIdAndUpdate(
-            req.params.orderId,
-            { status },
-            { new: true }
-        );
+        
+        // Find the order first to check previous status if needed (optional optimization)
+        const order = await Order.findById(req.params.orderId);
         if (!order) {
             return res.status(404).json({ message: "Order not found." });
         }
-        res.json({ message: "Order status updated!", order });
+
+        // Only deduct stock if the status is changing to 'Confirmed' for the first time
+        // We assume 'Pending' -> 'Confirmed' is the flow.
+        if (status === 'Confirmed' && order.status !== 'Confirmed') {
+             for (const product of order.products) {
+                await Product.findByIdAndUpdate(product.productId, { 
+                    $inc: { quantity: -product.quantity } 
+                });
+            }
+        }
+
+        order.status = status;
+        const updatedOrder = await order.save();
+
+        res.json({ message: "Order status updated!", order: updatedOrder });
     } catch (err) {
         console.error("Error updating order status:", err);
         res.status(500).json({ message: "Server error while updating status." });
@@ -179,6 +193,88 @@ router.get("/issues-count/:sellerId", async (req, res) => {
     }
 });
 
+// GET revenue analytics for a seller
+router.get("/analytics/:sellerId", async (req, res) => {
+    try {
+        const orders = await Order.find({ sellerId: req.params.sellerId });
+        
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+
+        let totalRevenue = 0;
+        let weeklyRevenue = 0;
+        let monthlyRevenue = 0;
+        let yearlyRevenue = 0;
+        const productSales = {};
+
+        orders.forEach(order => {
+            const orderDate = new Date(order.createdAt);
+            const orderRevenue = order.totalAmount;
+
+            // Include both Shipped and Delivered in revenue
+            if (['Shipped', 'Delivered'].includes(order.status)) {
+                totalRevenue += orderRevenue;
+
+                if (orderDate >= oneWeekAgo) weeklyRevenue += orderRevenue;
+                if (orderDate >= oneMonthAgo) monthlyRevenue += orderRevenue;
+                if (orderDate >= oneYearAgo) yearlyRevenue += orderRevenue;
+            }
+
+            // Track product sales
+            order.products.forEach(product => {
+                if (!productSales[product.name]) {
+                    productSales[product.name] = {
+                        name: product.name,
+                        totalSold: 0,
+                        revenue: 0,
+                        imageUrl: product.imageUrl
+                    };
+                }
+                
+                // Only count as "sold" if it's a valid order (not cancelled/rejected)
+                // You might want to include Pending/Confirmed here depending on definition of "Sold"
+                // For consistency with revenue, let's keep it broad for "Sold" count but specific for "Revenue"
+                if (!['Cancelled', 'Rejected'].includes(order.status)) {
+                    productSales[product.name].totalSold += product.quantity;
+                }
+
+                // Revenue per product
+                if (['Shipped', 'Delivered'].includes(order.status)) {
+                    productSales[product.name].revenue += product.price * product.quantity;
+                }
+            });
+        });
+
+        // Find best seller
+        let bestSeller = null;
+        let maxSold = 0;
+        Object.values(productSales).forEach(product => {
+            if (product.totalSold > maxSold) {
+                maxSold = product.totalSold;
+                bestSeller = product;
+            }
+        });
+
+        res.json({
+            totalRevenue: totalRevenue.toFixed(2),
+            revenueByPeriod: {
+                weekly: weeklyRevenue.toFixed(2),
+                monthly: monthlyRevenue.toFixed(2),
+                yearly: yearlyRevenue.toFixed(2)
+            },
+            bestSeller: bestSeller || { name: "None", totalSold: 0, revenue: 0 },
+            orderStats: {
+                totalOrders: orders.length,
+                deliveredOrders: orders.filter(o => o.status === 'Delivered').length,
+                shippedOrders: orders.filter(o => o.status === 'Shipped').length
+            }
+        });
+    } catch (err) {
+        console.error("Error fetching analytics:", err);
+        res.status(500).json({ message: "Server error while fetching analytics." });
+    }
+});
 
 export default router;
-

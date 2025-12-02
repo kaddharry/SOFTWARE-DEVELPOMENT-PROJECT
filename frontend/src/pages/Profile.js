@@ -15,10 +15,83 @@ const ShopClosedSign = ({ onClose }) => {
     );
 };
 
+const RevenueAnalyticsModal = ({ analytics, onClose }) => {
+    if (!analytics) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="analytics-modal-content" onClick={(e) => e.stopPropagation()}>
+                <button className="modal-close-btn" onClick={onClose}><X size={24} /></button>
+                <h2 className="analytics-title">Revenue Analytics</h2>
+                
+                <div className="analytics-section">
+                    <h3>Revenue Breakdown</h3>
+                    <div className="revenue-grid">
+                        <div className="revenue-card">
+                            <span className="period-label">This Week</span>
+                            <span className="revenue-amount">₹{analytics.revenueByPeriod.weekly}</span>
+                        </div>
+                        <div className="revenue-card">
+                            <span className="period-label">This Month</span>
+                            <span className="revenue-amount">₹{analytics.revenueByPeriod.monthly}</span>
+                        </div>
+                        <div className="revenue-card">
+                            <span className="period-label">This Year</span>
+                            <span className="revenue-amount">₹{analytics.revenueByPeriod.yearly}</span>
+                        </div>
+                        <div className="revenue-card highlight">
+                            <span className="period-label">All Time</span>
+                            <span className="revenue-amount">₹{analytics.totalRevenue}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="analytics-section">
+                    <h3>Best Selling Product</h3>
+                    {analytics.bestSeller.name !== "None" ? (
+                        <div className="best-seller-card">
+                            {analytics.bestSeller.imageUrl && (
+                                <img src={analytics.bestSeller.imageUrl} alt={analytics.bestSeller.name} className="best-seller-image" />
+                            )}
+                            <div className="best-seller-info">
+                                <h4>{analytics.bestSeller.name}</h4>
+                                <p className="sales-count">{analytics.bestSeller.totalSold} units sold</p>
+                                <p className="sales-revenue">Revenue: ₹{analytics.bestSeller.revenue.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="no-data">No products sold yet</p>
+                    )}
+                </div>
+
+                <div className="analytics-section">
+                    <h3>Order Statistics</h3>
+                    <div className="stats-grid">
+                        <div className="stat-item">
+                            <span className="stat-label">Total Orders</span>
+                            <span className="stat-value">{analytics.orderStats.totalOrders}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">Shipped</span>
+                            <span className="stat-value">{analytics.orderStats.shippedOrders || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">Delivered</span>
+                            <span className="stat-value">{analytics.orderStats.deliveredOrders}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function Profile() {
     const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
-    const [deliveryIssuesCount, setDeliveryIssuesCount] = useState(0); // New state for issues
+    const [deliveryIssuesCount, setDeliveryIssuesCount] = useState(0);
     const [dashboardData, setDashboardData] = useState({ revenue: "N/A", bestSeller: "N/A" });
+    const [analytics, setAnalytics] = useState(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
     const [isShopOpen, setIsShopOpen] = useState(true);
     const [showClosedSign, setShowClosedSign] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,30 +109,25 @@ function Profile() {
             const fetchSellerData = async () => {
                 if (!parsedData?._id) return;
                 try {
+                    // Fetch orders for pending/issues count
                     const ordersRes = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/by-seller/${parsedData._id}`);
                     if (ordersRes.ok) {
                         const orders = await ordersRes.json();
-                        
-                        // --- MODIFIED: Calculate both pending and issue counts ---
                         const pendingCount = orders.filter(order => order.status === 'Pending').length;
                         const issuesCount = orders.filter(order => order.hasDeliveryIssue).length;
                         setPendingOrdersCount(pendingCount);
                         setDeliveryIssuesCount(issuesCount);
+                    }
 
-                        let totalRevenue = 0;
-                        const productSales = {};
-                        orders.forEach(order => {
-                            if (order.status === 'Delivered') {
-                                totalRevenue += order.totalAmount;
-                            }
-                            order.products.forEach(product => {
-                                productSales[product.name] = (productSales[product.name] || 0) + product.quantity;
-                            });
-                        });
-                        const bestSellerName = Object.keys(productSales).reduce((a, b) => productSales[a] > productSales[b] ? a : b, "N/A");
+                    // Fetch analytics
+                    const analyticsRes = await fetch(`${process.env.REACT_APP_API_URL}/api/orders/analytics/${parsedData._id}`);
+                    if (analyticsRes.ok) {
+                        const analyticsData = await analyticsRes.json();
+                        setAnalytics(analyticsData);
                         setDashboardData({
-                            revenue: totalRevenue.toFixed(2),
-                            bestSeller: bestSellerName,
+                            revenue: analyticsData.totalRevenue,
+                            bestSeller: analyticsData.bestSeller.name,
+                            bestSellerImage: analyticsData.bestSeller.imageUrl
                         });
                     }
                 } catch (error) {
@@ -142,6 +210,7 @@ function Profile() {
         <>
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileChange} />
             {isModalOpen && ( <div className="modal-overlay" onClick={() => setIsModalOpen(false)}> <div className="modal-content" onClick={(e) => e.stopPropagation()}> <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button> <h3>Upload Profile Photo</h3> <button className="modal-option-btn" onClick={handleImageUploadClick}><Upload size={20} /> From Device</button> <button className="modal-option-btn" disabled><Camera size={20} /> From Camera (Coming Soon)</button> </div> </div> )}
+            {showAnalytics && <RevenueAnalyticsModal analytics={analytics} onClose={() => setShowAnalytics(false)} />}
             {showClosedSign && <ShopClosedSign onClose={() => setShowClosedSign(false)} />}
 
             <div className="profile-container">
@@ -152,8 +221,20 @@ function Profile() {
                 </div>
 
                 <div className="dashboard-grid">
-                    <div className="dashboard-card card"><BarChart2 size={28} className="icon-blue" /><h4>Total Revenue</h4><p className="metric">₹{dashboardData.revenue}</p></div>
-                    <div className="dashboard-card card"><Star size={28} className="icon-green" /><h4>Best Seller</h4><p className="metric-small">{dashboardData.bestSeller}</p></div>
+                    <div className="dashboard-card card interactive" onClick={() => setShowAnalytics(true)}>
+                        <BarChart2 size={28} className="icon-blue" />
+                        <h4>Total Revenue</h4>
+                        <p className="metric">₹{dashboardData.revenue}</p>
+                        <small className="click-hint">Click for details</small>
+                    </div>
+                    <div className="dashboard-card card">
+                        <Star size={28} className="icon-green" />
+                        <h4>Best Seller</h4>
+                        {dashboardData.bestSellerImage && (
+                            <img src={dashboardData.bestSellerImage} alt="Best Seller" className="best-seller-thumb" />
+                        )}
+                        <p className="metric-small">{dashboardData.bestSeller}</p>
+                    </div>
                     
                     {/* --- MODIFIED: The link now contains both notification badges --- */}
                     <Link to="/seller-orders" className="dashboard-card card interactive">
@@ -171,7 +252,7 @@ function Profile() {
 
                 <div className="menu-container card">
                     <h3 className="menu-title">Manage Your Shop</h3>
-                    <div className="menu-grid"><Link to="/add-product" className="menu-item"><PlusCircle size={24} /><span>Add New Product</span></Link><Link to="/my-products" className="menu-item"><ShoppingBag size={24} /><span>View Your Products</span></Link><Link to="/shop-preview" className="menu-item"><Eye size={24} /><span>View as Customer</span></Link></div>
+                    <div className="menu-grid"><Link to="/add-product" className="menu-item"><PlusCircle size={24} /><span>Add New Product</span></Link><Link to="/my-products" className="menu-item"><ShoppingBag size={24} /><span>View Your Products</span></Link></div>
                     <h3 className="menu-title">Account & Settings</h3>
                     <div className="menu-grid"><Link to="/edit-profile" className="menu-item"><Edit size={24} /><span>Edit Profile</span></Link><Link to="/reset-password" className="menu-item"><Shield size={24} /><span>Reset Password</span></Link></div>
                     <h3 className="menu-title">Support</h3>
@@ -197,7 +278,7 @@ function Profile() {
                 .status-label { font-weight: bold; color: #333; }
                 .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
                 .dashboard-card { text-align: center; text-decoration: none; color: inherit; position: relative; }
-                .dashboard-card.interactive { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                .dashboard-card.interactive { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
                 .dashboard-card.interactive:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
                 .dashboard-card h4 { margin: 10px 0 5px; color: #555; font-size: 0.9rem; }
                 .metric { margin: 0; font-size: 2rem; font-weight: bold; color: #003366; }
@@ -259,6 +340,172 @@ function Profile() {
                 .close-sign-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; color: #888; }
                 .spinner { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; transform: translate(-50%, -50%); }
                 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+                
+                /* Analytics Modal Styles */
+                .analytics-modal-content {
+                    background: white;
+                    border-radius: 20px;
+                    max-width: 700px;
+                    width: 90%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    padding: 40px;
+                    position: relative;
+                    animation: slideUp 0.3s ease-out;
+                }
+
+                @keyframes slideUp {
+                    from { transform: translateY(30px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                .analytics-title {
+                    color: #667eea;
+                    font-size: 2rem;
+                    margin: 0 0 30px;
+                    text-align: center;
+                    font-family: 'Outfit', sans-serif;
+                }
+
+                .analytics-section {
+                    margin-bottom: 30px;
+                }
+
+                .analytics-section h3 {
+                    color: #333;
+                    font-size: 1.3rem;
+                    margin-bottom: 15px;
+                    border-bottom: 2px solid #f0f4f8;
+                    padding-bottom: 10px;
+                }
+
+                .revenue-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 15px;
+                }
+
+                .revenue-card {
+                    background: linear-gradient(135deg, #f5f7ff, #fff5f8);
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: center;
+                    border: 2px solid #e9ecef;
+                    transition: all 0.3s;
+                }
+
+                .revenue-card.highlight {
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    border-color: #667eea;
+                }
+
+                .revenue-card.highlight .period-label,
+                .revenue-card.highlight .revenue-amount {
+                    color: white;
+                }
+
+                .period-label {
+                    display: block;
+                    font-size: 0.9rem;
+                    color: #666;
+                    margin-bottom: 8px;
+                    font-weight: 500;
+                }
+
+                .revenue-amount {
+                    display: block;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #667eea;
+                }
+
+                .best-seller-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    padding: 20px;
+                }
+
+                .best-seller-image {
+                    width: 100px;
+                    height: 100px;
+                    object-fit: cover;
+                    border-radius: 12px;
+                    border: 2px solid #e9ecef;
+                }
+
+                .best-seller-info h4 {
+                    margin: 0 0 10px;
+                    color: #333;
+                    font-size: 1.2rem;
+                }
+
+                .sales-count {
+                    margin: 5px 0;
+                    color: #667eea;
+                    font-weight: 600;
+                }
+
+                .sales-revenue {
+                    margin: 5px 0;
+                    color: #28a745;
+                    font-weight: 600;
+                }
+
+                .no-data {
+                    text-align: center;
+                    color: #999;
+                    padding: 20px;
+                    font-style: italic;
+                }
+
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 15px;
+                }
+
+                .stat-item {
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: center;
+                }
+
+                .stat-label {
+                    display: block;
+                    font-size: 0.9rem;
+                    color: #666;
+                    margin-bottom: 8px;
+                }
+
+                .stat-value {
+                    display: block;
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #667eea;
+                }
+
+                .click-hint {
+                    display: block;
+                    color: #667eea;
+                    font-size: 0.75rem;
+                    margin-top: 5px;
+                    font-weight: 500;
+                }
+
+                .best-seller-thumb {
+                    width: 60px;
+                    height: 60px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    margin: 10px auto;
+                    display: block;
+                    border: 2px solid #e9ecef;
+                }
+
                 @media (min-width: 768px) { .menu-grid { grid-template-columns: repeat(2, 1fr); } }
             `}</style>
         </>

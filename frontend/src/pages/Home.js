@@ -214,11 +214,11 @@ function Home({ addToCart }) {
                 </div>
 
                 <button className="ai-gift-bubble" onClick={() => setIsGiftAdvisorOpen(true)}>
-                    <Gift size={24} />
+                    <Gift size={28} color="white" />
                     <span>Gift Advisor</span>
                 </button>
                 <button className="cart-bubble" onClick={() => navigate("/cart")}>
-                    <ShoppingCart size={20} />
+                    <ShoppingCart size={28} color="white" />
                     <span>Your Cart</span>
                 </button>
                 <div className="bottom-blur"></div>
