@@ -217,7 +217,7 @@ function App() {
           }}
         >
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={verified ? <Navigate to="/home" replace /> : <LandingPage />} />
             <Route
               path="/register"
               element={<RegisterForm onNext={handleRegistrationNext} />}
@@ -240,15 +240,19 @@ function App() {
             <Route
               path="/login"
               element={
-                <Login
-                  onLoginSuccess={(user) => {
-                    setUserData(user);
-                    setVerified(true);
-                    localStorage.setItem("userData", JSON.stringify(user));
-                    localStorage.setItem("verified", "true");
-                    navigate("/home");
-                  }}
-                />
+                verified ? (
+                  <Navigate to="/home" replace />
+                ) : (
+                  <Login
+                    onLoginSuccess={(user) => {
+                      setUserData(user);
+                      setVerified(true);
+                      localStorage.setItem("userData", JSON.stringify(user));
+                      localStorage.setItem("verified", "true");
+                      navigate("/home");
+                    }}
+                  />
+                )
               }
             />
             <Route path="/reset-password" element={<ResetPassword />} />

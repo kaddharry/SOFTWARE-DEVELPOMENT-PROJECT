@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = "artisan-cache-v1";
+const CACHE_NAME = "artisan-cache-v2";
 const urlsToCache = [
   "/",
   "/index.html",
