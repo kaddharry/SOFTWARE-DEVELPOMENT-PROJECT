@@ -2,6 +2,7 @@ import React, { useState, Suspense } from "react";
 import { Link } from "react-router-dom";
 // This import will now work because you ran "npm install"
 import Spline from '@splinetool/react-spline';
+import { spline_login_page } from "../assets/spline_link.js";
 
 // A simple SVG icon for the login page header
 const LoginIcon = () => (
@@ -62,7 +63,7 @@ function Login({ onLoginSuccess }) {
           <div className="spline-column">
             <Suspense fallback={<div className="spline-loading">Loading 3D...</div>}>
               {/* This is your new scene */}
-              <Spline scene="https://prod.spline.design/T3mjBDAGxBa3WlMI/scene.splinecode" />
+              <Spline scene={spline_login_page} />
             </Suspense>
           </div>
 

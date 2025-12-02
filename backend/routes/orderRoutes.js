@@ -211,38 +211,37 @@ router.get("/analytics/:sellerId", async (req, res) => {
 
         orders.forEach(order => {
             const orderDate = new Date(order.createdAt);
-            const orderRevenue = order.totalAmount;
-
-            // Include both Shipped and Delivered in revenue
-            if (['Shipped', 'Delivered'].includes(order.status)) {
-                totalRevenue += orderRevenue;
-
-                if (orderDate >= oneWeekAgo) weeklyRevenue += orderRevenue;
-                if (orderDate >= oneMonthAgo) monthlyRevenue += orderRevenue;
-                if (orderDate >= oneYearAgo) yearlyRevenue += orderRevenue;
-            }
-
+            
             // Track product sales
             order.products.forEach(product => {
-                if (!productSales[product.name]) {
-                    productSales[product.name] = {
-                        name: product.name,
+                const pName = product.name;
+                const pPrice = product.price || 0;
+                const pQty = product.quantity || 0;
+                const pRevenue = pPrice * pQty;
+
+                if (!productSales[pName]) {
+                    productSales[pName] = {
+                        name: pName,
                         totalSold: 0,
                         revenue: 0,
                         imageUrl: product.imageUrl
                     };
                 }
                 
-                // Only count as "sold" if it's a valid order (not cancelled/rejected)
-                // You might want to include Pending/Confirmed here depending on definition of "Sold"
-                // For consistency with revenue, let's keep it broad for "Sold" count but specific for "Revenue"
+                // Count "Sold" (Quantity) for all valid orders (excluding Cancelled/Rejected)
                 if (!['Cancelled', 'Rejected'].includes(order.status)) {
-                    productSales[product.name].totalSold += product.quantity;
+                    productSales[pName].totalSold += pQty;
                 }
 
-                // Revenue per product
+                // Count Revenue only for Shipped/Delivered orders
                 if (['Shipped', 'Delivered'].includes(order.status)) {
-                    productSales[product.name].revenue += product.price * product.quantity;
+                    productSales[pName].revenue += pRevenue;
+                    
+                    // Add to total/periodic revenue
+                    totalRevenue += pRevenue;
+                    if (orderDate >= oneWeekAgo) weeklyRevenue += pRevenue;
+                    if (orderDate >= oneMonthAgo) monthlyRevenue += pRevenue;
+                    if (orderDate >= oneYearAgo) yearlyRevenue += pRevenue;
                 }
             });
         });

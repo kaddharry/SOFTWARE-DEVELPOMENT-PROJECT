@@ -1,12 +1,12 @@
 import React, { Suspense, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Spline from "@splinetool/react-spline";
+import { spline_landing_page } from "../assets/spline_link.js";
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const splineRef = useRef();
   const mouseTargetRef = useRef({ x: 0.5, y: 0.5 });
-  const mouseCurrentRef = useRef({ x: 0.5, y: 0.5 });
 
   const onSplineLoad = (spline) => {
     splineRef.current = spline;
@@ -537,7 +537,7 @@ export default function LandingPage() {
             </div>
           }
         >
-          <Spline scene="https://prod.spline.design/nRErCWsSC7xTj3RV/scene.splinecode" onLoad={onSplineLoad} onMouseMove={handleMouseMove} />
+          <Spline scene={spline_landing_page} onLoad={onSplineLoad} onMouseMove={handleMouseMove} />
         </Suspense>
       </div>
 
